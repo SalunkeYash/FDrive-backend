@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Response, status
 
+from app.core import metrics
 from app.core.deps import get_auth_service
 from app.core.rate_limit import client_ip, enforce_auth_rate_limit
 from app.schemas.auth import (
@@ -45,6 +46,7 @@ def login(
 ) -> TokenResponse:
     enforce_auth_rate_limit(request)
     tokens = auth.login(body.email, body.password)
+    metrics.incr("auth.login.success")
     record_audit(
         auth.db,
         action="auth.login",

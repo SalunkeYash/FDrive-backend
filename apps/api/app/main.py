@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.logging_middleware import RequestLoggingMiddleware
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.routers import (
     account,
@@ -9,6 +10,7 @@ from app.routers import (
     files,
     folders,
     health,
+    ops,
     previews,
     search,
     shares,
@@ -30,6 +32,7 @@ def create_app() -> FastAPI:
         openapi_url=openapi_url,
     )
 
+    app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -50,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router, prefix=settings.api_prefix)
     app.include_router(previews.router, prefix=settings.api_prefix)
     app.include_router(uploads.router, prefix=settings.api_prefix)
+    app.include_router(ops.router, prefix=settings.api_prefix)
 
     return app
 

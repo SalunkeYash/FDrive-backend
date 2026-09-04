@@ -102,8 +102,8 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 | 17 Testing + Load Testing | Done |
 | 18 AWS Infrastructure | Done |
 | 19 CI/CD | Done |
-| 20 Monitoring + Logging | Next |
-| 21 Billing | Planned |
+| 20 Monitoring + Logging | Done |
+| 21 Billing | Next |
 | 22 Production Launch | Planned |
 | 23 Scaling | Planned |
 
