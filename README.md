@@ -96,7 +96,8 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 | 11 Search | Done |
 | 12 Background Workers + SQS | Done |
 | 13 Preview + Thumbnails | Done |
-| 14 Large/Resumable Uploads | Next |
+| 14 Large/Resumable Uploads | Done |
+| 15 Security Hardening | Next |
 
 ## Makefile helpers
 
