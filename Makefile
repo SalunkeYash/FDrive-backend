@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs api web install migrate migrate-down
+.PHONY: infra-up infra-down infra-logs api web install migrate migrate-down test-api test-web load-test
 
 infra-up:
 	docker compose up -d
@@ -24,3 +24,12 @@ migrate:
 
 migrate-down:
 	cd apps/api && . .venv/bin/activate && alembic downgrade -1
+
+test-api:
+	cd apps/api && . .venv/bin/activate && pytest -q
+
+test-web:
+	cd apps/web && npm run build
+
+load-test:
+	cd apps/api && . .venv/bin/activate && locust -f loadtest/locustfile.py --host http://localhost:8000

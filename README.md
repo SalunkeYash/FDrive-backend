@@ -2,7 +2,7 @@
 
 Personal cloud drive — Vite + React frontend, FastAPI backend, Postgres metadata, S3 object storage.
 
-Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Testing: [docs/TESTING.md](docs/TESTING.md)
 
 ## Stack
 
@@ -99,7 +99,13 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 | 14 Large/Resumable Uploads | Done |
 | 15 Security Hardening | Done |
 | 16 Frontend Polish | Done |
-| 17 Testing + Load Testing | Next |
+| 17 Testing + Load Testing | Done |
+| 18 AWS Infrastructure | Next |
+| 19 CI/CD | Planned |
+| 20 Monitoring + Logging | Planned |
+| 21 Billing | Planned |
+| 22 Production Launch | Planned |
+| 23 Scaling | Planned |
 
 ## Makefile helpers
 
@@ -108,4 +114,7 @@ make infra-up      # docker compose up -d
 make infra-down    # docker compose down
 make api           # run API with reload
 make web           # run Vite dev server
+make test-api      # pytest
+make test-web      # frontend production build
+make load-test     # Locust UI (API must be running)
 ```
