@@ -1,0 +1,41 @@
+---
+description: FDrive coding standards — clear, simple, reusable code
+alwaysApply: true
+---
+
+# FDrive coding standards
+
+Write code that is easy to read and reuse. Prefer clarity over cleverness.
+
+## Structure
+
+- Keep **frontend** in `apps/web/` and **backend** in `apps/api/` — never mix.
+- Routers stay thin: validate input, call a service, return a response.
+- Put business logic in `services/`. Put shared helpers in `core/` (security, deps, errors).
+- Prefer small reusable functions over copy-paste. Extract when the same logic appears twice.
+
+## Style
+
+- Use plain, readable names (`get_user_by_email`, not `gue` or `fetchEntity`).
+- Keep functions short; one clear job each.
+- Early returns over deep nesting.
+- Avoid clever one-liners, magic abbreviations, and unnecessary abstractions.
+- Comments only when intent is not obvious from the code.
+
+## Backend (Python / FastAPI)
+
+- Type hints on public functions.
+- Raise HTTP errors via shared helpers in `app/core/errors.py`.
+- Reuse `get_db`, `get_current_user`, and service factories via `Depends`.
+- Do not put SQL or password/JWT details inside routers.
+
+## Frontend (React / TypeScript)
+
+- Small components; shared UI/helpers when reused.
+- Prefer straightforward props and hooks over complex state libraries unless needed.
+
+## Git
+
+- Do **not** commit unless the user explicitly asks.
+- After each phase, ask before committing.
+- Keep secrets, caches, builds, and local junk out of git via `.gitignore`.

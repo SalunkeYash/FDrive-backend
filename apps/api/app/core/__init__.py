@@ -1,1 +1,1 @@
-"""Core config, security, and shared dependencies."""
+"""Reusable HTTP error helpers."""

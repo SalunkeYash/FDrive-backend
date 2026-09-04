@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     s3_bucket: str = "fdrive"
     s3_region: str = "us-east-1"
 
+    # Auth
+    jwt_secret: str = "dev-only-change-me-fdrive-jwt-secret"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 14
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

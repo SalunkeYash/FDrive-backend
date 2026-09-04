@@ -63,5 +63,7 @@ coverage.xml
 *.orig
 *.bak
 *.tmp
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 agent-transcripts/
