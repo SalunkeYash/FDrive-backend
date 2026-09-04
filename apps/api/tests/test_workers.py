@@ -29,10 +29,15 @@ def test_enqueue_job_skips_when_queue_unset() -> None:
 
 
 def test_handle_job_known_types(caplog) -> None:
-    with caplog.at_level(logging.INFO):
-        handle_job("generate_thumbnail", {"file_id": "f1"})
+    with (
+        patch("workers.__main__.SessionLocal") as session_factory,
+        patch("workers.__main__.generate_thumbnail_for_file") as gen,
+        caplog.at_level(logging.INFO),
+    ):
+        session_factory.return_value = MagicMock()
+        handle_job("generate_thumbnail", {"file_id": "11111111-1111-1111-1111-111111111111"})
         handle_job("purge_expired_trash", {})
         handle_job("unknown", {})
-    assert "thumbnail job received" in caplog.text
+    gen.assert_called_once()
     assert "purge trash job received" in caplog.text
     assert "unknown job_type" in caplog.text

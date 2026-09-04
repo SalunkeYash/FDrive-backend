@@ -1,8 +1,8 @@
 """
-FDrive background worker (Phase 12).
+FDrive background worker (Phase 12+).
 
 Polls SQS for jobs such as thumbnail generation and trash purge.
-Run: python -m workers
+Run: PYTHONPATH=apps/api python -m workers
 """
 
 from __future__ import annotations
@@ -10,17 +10,27 @@ from __future__ import annotations
 import json
 import logging
 import time
+from uuid import UUID
 
 from app.core.config import settings
+from app.db.session import SessionLocal
 from app.integrations.sqs import get_sqs_client
+from app.services.thumbnails import generate_thumbnail_for_file
 
 logger = logging.getLogger("fdrive.worker")
 
 
 def handle_job(job_type: str, payload: dict) -> None:
     if job_type == "generate_thumbnail":
-        logger.info("thumbnail job received for file_id=%s", payload.get("file_id"))
-        # Phase 13 expands real thumbnail generation
+        file_id = payload.get("file_id")
+        if not file_id:
+            logger.warning("thumbnail job missing file_id")
+            return
+        db = SessionLocal()
+        try:
+            generate_thumbnail_for_file(db, UUID(str(file_id)))
+        finally:
+            db.close()
         return
     if job_type == "purge_expired_trash":
         logger.info("purge trash job received")
