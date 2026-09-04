@@ -171,3 +171,104 @@ class FileService:
             self.db, owner_id=owner.id, folder_id=folder_id
         )
         return [FileResponse.model_validate(f) for f in files]
+
+    def rename_file(self, owner: User, file_id: UUID, file_name: str) -> File:
+        try:
+            file_name = fq.normalize_file_name(file_name)
+        except ValueError as exc:
+            raise errors.bad_request(str(exc)) from exc
+
+        file_row = self._require_ready_file(owner, file_id)
+        file_row.name = file_name
+        self.db.commit()
+        self.db.refresh(file_row)
+        return file_row
+
+    def move_file(
+        self,
+        owner: User,
+        file_id: UUID,
+        destination_folder_id: UUID | None,
+    ) -> File:
+        file_row = self._require_ready_file(owner, file_id)
+        self._require_destination_folder(owner.id, destination_folder_id)
+        file_row.folder_id = destination_folder_id
+        self.db.commit()
+        self.db.refresh(file_row)
+        return file_row
+
+    def copy_file(
+        self,
+        owner: User,
+        file_id: UUID,
+        *,
+        destination_folder_id: UUID | None,
+        new_file_name: str | None,
+    ) -> File:
+        source = self._require_ready_file(owner, file_id)
+        if source.object is None:
+            raise errors.bad_request("File has no storage object")
+
+        self._require_destination_folder(owner.id, destination_folder_id)
+
+        name = new_file_name if new_file_name is not None else source.name
+        try:
+            name = fq.normalize_file_name(name)
+        except ValueError as exc:
+            raise errors.bad_request(str(exc)) from exc
+
+        self.db.refresh(owner)
+        quota.ensure_quota(owner, source.size_bytes)
+
+        copy_row = File(
+            owner_id=owner.id,
+            folder_id=destination_folder_id,
+            name=name,
+            mime_type=source.mime_type,
+            size_bytes=source.size_bytes,
+            status=FileStatus.ready,
+        )
+        self.db.add(copy_row)
+        self.db.flush()
+
+        new_key = s3_store.build_original_object_key(str(owner.id), str(copy_row.id))
+        try:
+            s3_store.copy_object(
+                source_bucket=source.object.s3_bucket,
+                source_key=source.object.s3_key,
+                destination_bucket=settings.s3_bucket,
+                destination_key=new_key,
+            )
+        except ClientError as exc:
+            self.db.rollback()
+            raise errors.bad_request("Could not copy file in storage") from exc
+
+        self.db.add(
+            FileObject(
+                file_id=copy_row.id,
+                s3_bucket=settings.s3_bucket,
+                s3_key=new_key,
+                etag=source.object.etag,
+            )
+        )
+        quota.add_bytes_used(owner, source.size_bytes)
+        self.db.commit()
+        self.db.refresh(copy_row)
+        return copy_row
+
+    def _require_ready_file(self, owner: User, file_id: UUID) -> File:
+        file_row = self.get_file(owner, file_id)
+        if file_row.status != FileStatus.ready:
+            raise errors.bad_request("File is not ready")
+        return file_row
+
+    def _require_destination_folder(
+        self, owner_id: UUID, destination_folder_id: UUID | None
+    ) -> None:
+        if destination_folder_id is None:
+            return
+        folder = folder_queries.get_owned_folder(
+            self.db, owner_id=owner_id, folder_id=destination_folder_id
+        )
+        if folder is None:
+            raise errors.not_found("Destination folder not found")

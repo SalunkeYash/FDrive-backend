@@ -161,3 +161,49 @@ def test_download_rejects_pending_file(client: TestClient) -> None:
         headers=headers,
     )
     assert response.status_code == 400
+
+
+def test_rename_move_and_copy_file(client: TestClient) -> None:
+    headers = _auth_header(client)
+    file_id = _create_ready_file(client, headers, size=5)
+
+    renamed = client.patch(
+        f"/api/v1/files/{file_id}/rename-file",
+        headers=headers,
+        json={"file_name": "renamed.txt"},
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["name"] == "renamed.txt"
+
+    folder = client.post(
+        "/api/v1/folders/create-folder",
+        headers=headers,
+        json={"name": "Inbox"},
+    )
+    folder_id = folder.json()["id"]
+
+    moved = client.post(
+        f"/api/v1/files/{file_id}/move-file",
+        headers=headers,
+        json={"destination_folder_id": folder_id},
+    )
+    assert moved.status_code == 200
+    assert moved.json()["folder_id"] == folder_id
+
+    with patch("app.services.files.s3_store.copy_object") as copy_mock:
+        copied = client.post(
+            f"/api/v1/files/{file_id}/copy-file",
+            headers=headers,
+            json={
+                "destination_folder_id": None,
+                "new_file_name": "renamed-copy.txt",
+            },
+        )
+    assert copied.status_code == 201, copied.text
+    assert copied.json()["name"] == "renamed-copy.txt"
+    assert copied.json()["folder_id"] is None
+    assert copied.json()["id"] != file_id
+    copy_mock.assert_called_once()
+
+    usage = client.get("/api/v1/account/storage-quota", headers=headers)
+    assert usage.json()["bytes_used"] == 10  # original + copy

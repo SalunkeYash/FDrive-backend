@@ -42,3 +42,16 @@ class RequestDownloadUrlResponse(BaseModel):
     expires_in_seconds: int
     size_bytes: int
     mime_type: str | None
+
+
+class RenameFileRequest(BaseModel):
+    file_name: str = Field(min_length=1, max_length=512)
+
+
+class MoveFileRequest(BaseModel):
+    destination_folder_id: UUID | None = None
+
+
+class CopyFileRequest(BaseModel):
+    destination_folder_id: UUID | None = None
+    new_file_name: str | None = Field(default=None, min_length=1, max_length=512)

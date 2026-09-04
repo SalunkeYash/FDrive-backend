@@ -68,6 +68,20 @@ def get_object_metadata(*, bucket: str, key: str) -> dict[str, Any]:
     return get_s3_client().head_object(Bucket=bucket, Key=key)
 
 
+def copy_object(
+    *,
+    source_bucket: str,
+    source_key: str,
+    destination_bucket: str,
+    destination_key: str,
+) -> None:
+    get_s3_client().copy_object(
+        Bucket=destination_bucket,
+        Key=destination_key,
+        CopySource={"Bucket": source_bucket, "Key": source_key},
+    )
+
+
 def ensure_bucket_exists(bucket: str | None = None) -> None:
     bucket = bucket or settings.s3_bucket
     client = get_s3_client()

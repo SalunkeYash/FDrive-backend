@@ -7,7 +7,10 @@ from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models import User
 from app.schemas.files import (
+    CopyFileRequest,
     FileResponse,
+    MoveFileRequest,
+    RenameFileRequest,
     RequestDownloadUrlResponse,
     RequestUploadUrlRequest,
     RequestUploadUrlResponse,
@@ -93,3 +96,54 @@ def request_download_url(
     files: FileService = Depends(get_file_service),
 ) -> RequestDownloadUrlResponse:
     return files.request_download_url(current_user, file_id)
+
+
+@router.patch(
+    "/{file_id}/rename-file",
+    response_model=FileResponse,
+    summary="Rename a file",
+)
+def rename_file(
+    file_id: UUID,
+    body: RenameFileRequest,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> FileResponse:
+    file_row = files.rename_file(current_user, file_id, body.file_name)
+    return FileResponse.model_validate(file_row)
+
+
+@router.post(
+    "/{file_id}/move-file",
+    response_model=FileResponse,
+    summary="Move a file into another folder (or root)",
+)
+def move_file(
+    file_id: UUID,
+    body: MoveFileRequest,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> FileResponse:
+    file_row = files.move_file(current_user, file_id, body.destination_folder_id)
+    return FileResponse.model_validate(file_row)
+
+
+@router.post(
+    "/{file_id}/copy-file",
+    response_model=FileResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Copy a file (duplicates storage bytes and counts toward quota)",
+)
+def copy_file(
+    file_id: UUID,
+    body: CopyFileRequest,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> FileResponse:
+    file_row = files.copy_file(
+        current_user,
+        file_id,
+        destination_folder_id=body.destination_folder_id,
+        new_file_name=body.new_file_name,
+    )
+    return FileResponse.model_validate(file_row)
