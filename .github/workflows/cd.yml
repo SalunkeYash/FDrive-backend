@@ -1,0 +1,65 @@
+name: cd
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/api:latest
+            ghcr.io/${{ github.repository }}/api:${{ github.sha }}
+
+      - name: Build and push worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: workers/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/worker:latest
+            ghcr.io/${{ github.repository }}/worker:${{ github.sha }}
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/web:latest
+            ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+
+  # Deploy step is intentionally a stub until AWS credentials / ECS services exist.
+  deploy-staging-stub:
+    needs: build-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Placeholder deploy
+        run: |
+          echo "Images published to GHCR."
+          echo "Wire this job to ECS/Fargate update-service once Phase 18 infra is applied."
