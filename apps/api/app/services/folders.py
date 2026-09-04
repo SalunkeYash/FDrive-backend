@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -133,21 +132,9 @@ class FolderService:
         return folder
 
     def move_folder_to_trash(self, owner: User, folder_id: UUID) -> Folder:
-        folder = self._require_owned_folder(owner.id, folder_id)
-        now = datetime.now(UTC)
-        folder.is_trashed = True
-        folder.trashed_at = now
+        from app.services.trash import TrashService
 
-        # Soft-trash descendants so they disappear from the tree
-        prefix = f"{folder.path}{folder.id}/"
-        for child in fq.list_owned_folders(self.db, owner.id):
-            if child.path.startswith(prefix):
-                child.is_trashed = True
-                child.trashed_at = now
-
-        self.db.commit()
-        self.db.refresh(folder)
-        return folder
+        return TrashService(self.db).move_folder_to_trash(owner, folder_id)
 
     def list_folder_tree(self, owner: User) -> list[FolderTreeNode]:
         folders = fq.list_owned_folders(self.db, owner.id)

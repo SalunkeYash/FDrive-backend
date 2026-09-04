@@ -82,6 +82,10 @@ def copy_object(
     )
 
 
+def delete_object(*, bucket: str, key: str) -> None:
+    get_s3_client().delete_object(Bucket=bucket, Key=key)
+
+
 def ensure_bucket_exists(bucket: str | None = None) -> None:
     bucket = bucket or settings.s3_bucket
     client = get_s3_client()

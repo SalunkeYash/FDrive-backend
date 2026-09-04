@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     # Quota (Phase 04) — default free tier for new users
     default_bytes_limit: int = 5 * 1024 * 1024 * 1024  # 5 GiB
 
+    # Trash (Phase 09)
+    trash_retention_days: int = 30
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

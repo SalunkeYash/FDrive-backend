@@ -52,3 +52,14 @@ def list_files_in_folder(
     else:
         query = query.where(File.folder_id == folder_id)
     return list(db.scalars(query.order_by(File.name.asc())).all())
+
+
+def list_trashed_files(db: Session, owner_id: UUID) -> list[File]:
+    return list(
+        db.scalars(
+            select(File)
+            .where(File.owner_id == owner_id, File.is_trashed.is_(True))
+            .options(joinedload(File.object))
+            .order_by(File.trashed_at.desc())
+        ).all()
+    )

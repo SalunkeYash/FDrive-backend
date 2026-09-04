@@ -30,14 +30,17 @@ def get_folder_by_id(db: Session, folder_id: UUID) -> Folder | None:
     return db.scalar(select(Folder).where(Folder.id == folder_id))
 
 
-def get_owned_folder(db: Session, *, owner_id: UUID, folder_id: UUID) -> Folder | None:
-    return db.scalar(
-        select(Folder).where(
-            Folder.id == folder_id,
-            Folder.owner_id == owner_id,
-            Folder.is_trashed.is_(False),
-        )
-    )
+def get_owned_folder(
+    db: Session,
+    *,
+    owner_id: UUID,
+    folder_id: UUID,
+    include_trashed: bool = False,
+) -> Folder | None:
+    query = select(Folder).where(Folder.id == folder_id, Folder.owner_id == owner_id)
+    if not include_trashed:
+        query = query.where(Folder.is_trashed.is_(False))
+    return db.scalar(query)
 
 
 def list_child_folders(
@@ -88,6 +91,27 @@ def list_owned_folders(db: Session, owner_id: UUID) -> list[Folder]:
         db.scalars(
             select(Folder)
             .where(Folder.owner_id == owner_id, Folder.is_trashed.is_(False))
+            .order_by(Folder.path.asc(), Folder.name.asc())
+        ).all()
+    )
+
+
+def list_trashed_folders(db: Session, owner_id: UUID) -> list[Folder]:
+    return list(
+        db.scalars(
+            select(Folder)
+            .where(Folder.owner_id == owner_id, Folder.is_trashed.is_(True))
+            .order_by(Folder.trashed_at.desc())
+        ).all()
+    )
+
+
+def list_all_owned_folders(db: Session, owner_id: UUID) -> list[Folder]:
+    """Active + trashed folders for subtree operations."""
+    return list(
+        db.scalars(
+            select(Folder)
+            .where(Folder.owner_id == owner_id)
             .order_by(Folder.path.asc(), Folder.name.asc())
         ).all()
     )
