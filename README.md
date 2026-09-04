@@ -39,7 +39,7 @@ docker-compose.yml
 docker compose up -d
 ```
 
-Starts Postgres (`:5432`), Redis (`:6379`), MinIO (`:9000`, console `:9001`). Default bucket: `fdrive`.
+Starts Postgres (`:5432`), Redis (`:6379`), MinIO (`:9000`, console `:9001`), ElasticMQ (`:9324`). Default bucket: `fdrive`.
 
 ### 2. API
 
@@ -59,7 +59,17 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Frontend lives in `apps/web/` — keep backend (`apps/api/`) and frontend separate.
 
-### 3. Web
+### 3. Worker (optional locally)
+
+```bash
+# from repo root, with the API venv active
+source apps/api/.venv/bin/activate
+PYTHONPATH=apps/api python -m workers
+```
+
+Polls the `fdrive-jobs` SQS queue (ElasticMQ on `:9324`).
+
+### 4. Web
 
 ```bash
 cd apps/web
@@ -84,7 +94,8 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 | 09 Trash + Restore | Done |
 | 10 Sharing + Permissions | Done |
 | 11 Search | Done |
-| 12 Background Workers + SQS | Next |
+| 12 Background Workers + SQS | Done |
+| 13 Preview + Thumbnails | Next |
 
 ## Makefile helpers
 

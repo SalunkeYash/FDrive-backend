@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # Trash (Phase 09)
     trash_retention_days: int = 30
 
+    # SQS / workers (Phase 12)
+    sqs_endpoint_url: str | None = "http://localhost:9324"
+    sqs_queue_url: str | None = "http://localhost:9324/queue/fdrive-jobs"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

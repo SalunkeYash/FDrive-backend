@@ -60,6 +60,15 @@ services:
       exit 0;
       "
 
+  # Local SQS-compatible queue (Phase 12)
+  elasticmq:
+    image: softwaremill/elasticmq-native:latest
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+    volumes:
+      - ./infra/elasticmq.conf:/opt/elasticmq.conf
+
 volumes:
   postgres_data:
   redis_data:

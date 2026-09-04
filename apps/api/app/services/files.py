@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core import errors
 from app.core.config import settings
 from app.integrations import s3 as s3_store
+from app.integrations.sqs import enqueue_job
 from app.models import File, FileObject, FileStatus, User
 from app.schemas.files import (
     FileResponse,
@@ -127,6 +128,16 @@ class FileService:
 
         self.db.commit()
         self.db.refresh(file_row)
+
+        try:
+            enqueue_job(
+                "generate_thumbnail",
+                {"file_id": str(file_row.id), "owner_id": str(owner.id)},
+            )
+        except Exception:
+            # Upload success must not depend on the queue being up.
+            pass
+
         return file_row
 
     def get_file(self, owner: User, file_id: UUID) -> File:
