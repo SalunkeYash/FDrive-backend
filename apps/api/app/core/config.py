@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 14
 
+    # Quota (Phase 04) — default free tier for new users
+    default_bytes_limit: int = 5 * 1024 * 1024 * 1024  # 5 GiB
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

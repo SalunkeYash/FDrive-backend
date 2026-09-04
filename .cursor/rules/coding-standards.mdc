@@ -22,6 +22,16 @@ Write code that is easy to read and reuse. Prefer clarity over cleverness.
 - Avoid clever one-liners, magic abbreviations, and unnecessary abstractions.
 - Comments only when intent is not obvious from the code.
 
+## API naming (important)
+
+Name routes and handlers for **what the API does for the product**, not vague shortcuts.
+
+- Good: `/auth/login`, `/auth/refresh-token`, `/account/profile`, `/account/storage-quota`
+- Bad: `/auth/me`, `/users/me/usage`, `/do`, `/data`, `/action`
+- Group by purpose: `auth` (credentials/session), `account` (profile/quota), later `folders`, `files`, `shares`
+- Handler function names should match the purpose: `get_storage_quota`, not `get_usage`
+- Path segments use words a new developer can understand without reading the code
+
 ## Backend (Python / FastAPI)
 
 - Type hints on public functions.

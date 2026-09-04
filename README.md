@@ -75,8 +75,9 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 |-------|--------|
 | 01 Project Foundation | Done |
 | 02 Database + Data Model | Done |
-| 03 Authentication | In progress |
-| 04 User + Storage Quota | Next |
+| 03 Authentication | Done |
+| 04 User + Storage Quota | In progress |
+| 05 Folders | Next |
 
 ## Makefile helpers
 

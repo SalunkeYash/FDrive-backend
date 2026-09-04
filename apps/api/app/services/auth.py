@@ -17,7 +17,7 @@ from app.core.security import (
 )
 from app.models import RefreshToken, User
 from app.schemas.auth import TokenResponse
-from app.services.users import get_user_by_email, normalize_email
+from app.services.users import create_user, get_user_by_email
 
 
 class AuthService:
@@ -28,13 +28,12 @@ class AuthService:
         if get_user_by_email(self.db, email) is not None:
             raise errors.conflict("Email already registered")
 
-        user = User(
-            email=normalize_email(email),
+        user = create_user(
+            self.db,
+            email=email,
             password_hash=hash_password(password),
             display_name=display_name,
         )
-        self.db.add(user)
-        self.db.flush()
 
         tokens = self._create_token_pair(user)
         self.db.commit()

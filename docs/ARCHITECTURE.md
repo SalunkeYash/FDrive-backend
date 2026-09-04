@@ -224,11 +224,11 @@ Versioned: `/api/v1/...`
 
 | Module | Examples | Phase |
 |--------|----------|-------|
-| Auth | register, login, refresh, logout | 03 |
-| Users / quota | me, usage | 04 |
-| Folders | CRUD, move, tree | 05 |
-| Files | upload-url, complete, metadata | 06 |
-| Download | download-url | 07 |
+| Auth | register-account, login, refresh-token, logout | 03 |
+| Account | profile, storage-quota | 04 |
+| Folders | create, list, rename, move, tree | 05 |
+| Files | request-upload-url, complete-upload, metadata | 06 |
+| Download | request-download-url | 07 |
 | Manage | rename, move, copy | 08 |
 | Trash | soft-delete, restore, purge | 09 |
 | Shares | create link / user share, roles | 10 |
