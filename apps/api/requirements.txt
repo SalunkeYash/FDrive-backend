@@ -9,6 +9,7 @@ PyJWT>=2.9.0
 argon2-cffi>=23.1.0
 boto3>=1.35.0
 Pillow>=10.0.0
+redis>=5.0.0
 httpx>=0.28.0
 pytest>=8.3.0
 ruff>=0.8.0

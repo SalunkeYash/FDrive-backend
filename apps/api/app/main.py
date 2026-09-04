@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.security_headers import SecurityHeadersMiddleware
 from app.routers import (
     account,
     auth,
@@ -17,13 +18,19 @@ from app.routers import (
 
 
 def create_app() -> FastAPI:
+    docs_url = "/docs" if settings.docs_enabled else None
+    redoc_url = "/redoc" if settings.docs_enabled else None
+    openapi_url = "/openapi.json" if settings.docs_enabled else None
+
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url=docs_url,
+        redoc_url=redoc_url,
+        openapi_url=openapi_url,
     )
 
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,

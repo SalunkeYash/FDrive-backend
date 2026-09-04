@@ -38,9 +38,19 @@ class Settings(BaseSettings):
     sqs_endpoint_url: str | None = "http://localhost:9324"
     sqs_queue_url: str | None = "http://localhost:9324/queue/fdrive-jobs"
 
+    # Security (Phase 15)
+    auth_rate_limit_per_minute: int = 30
+    enable_api_docs: bool = True
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def docs_enabled(self) -> bool:
+        if self.environment in {"prod", "production", "staging"}:
+            return False
+        return self.enable_api_docs
 
 
 settings = Settings()

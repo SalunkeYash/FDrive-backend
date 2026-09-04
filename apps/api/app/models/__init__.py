@@ -1,6 +1,7 @@
 """SQLAlchemy domain models."""
 
 from app.models.entities import (
+    AuditEvent,
     File,
     FileObject,
     FileStatus,
@@ -15,6 +16,7 @@ from app.models.entities import (
 )
 
 __all__ = [
+    "AuditEvent",
     "File",
     "FileObject",
     "FileStatus",
