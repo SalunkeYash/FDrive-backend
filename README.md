@@ -83,7 +83,8 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 | 08 File Management | Done |
 | 09 Trash + Restore | Done |
 | 10 Sharing + Permissions | Done |
-| 11 Search | Next |
+| 11 Search | Done |
+| 12 Background Workers + SQS | Next |
 
 ## Makefile helpers
 
