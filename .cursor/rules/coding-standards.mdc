@@ -49,3 +49,6 @@ Name routes and handlers for **what the API does for the product**, not vague sh
 - Do **not** commit unless the user explicitly asks.
 - After each phase, ask before committing.
 - Keep secrets, caches, builds, and local junk out of git via `.gitignore`.
+- Commit messages: **short, simple, easy to understand** (one clear sentence).
+  - Good: `Add folder create, list, move, and trash APIs.`
+  - Bad: long multi-paragraph essays or vague messages like `update` / `fixes`
