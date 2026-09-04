@@ -39,6 +39,30 @@ def create_presigned_upload_url(*, bucket: str, key: str, content_type: str | No
     )
 
 
+def create_presigned_download_url(
+    *,
+    bucket: str,
+    key: str,
+    download_filename: str,
+    content_type: str | None = None,
+) -> str:
+    """Presigned GET so the browser/client downloads directly from storage."""
+    # Keep filename safe for Content-Disposition
+    safe_name = download_filename.replace('"', "")
+    params: dict[str, Any] = {
+        "Bucket": bucket,
+        "Key": key,
+        "ResponseContentDisposition": f'attachment; filename="{safe_name}"',
+    }
+    if content_type:
+        params["ResponseContentType"] = content_type
+    return get_s3_client().generate_presigned_url(
+        "get_object",
+        Params=params,
+        ExpiresIn=settings.s3_presign_expire_seconds,
+    )
+
+
 def get_object_metadata(*, bucket: str, key: str) -> dict[str, Any]:
     """Return HeadObject response. Raises if the object is missing."""
     return get_s3_client().head_object(Bucket=bucket, Key=key)

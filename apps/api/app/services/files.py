@@ -9,7 +9,11 @@ from app.core import errors
 from app.core.config import settings
 from app.integrations import s3 as s3_store
 from app.models import File, FileObject, FileStatus, User
-from app.schemas.files import FileResponse, RequestUploadUrlResponse
+from app.schemas.files import (
+    FileResponse,
+    RequestDownloadUrlResponse,
+    RequestUploadUrlResponse,
+)
 from app.services import file_queries as fq
 from app.services import folder_queries, quota
 
@@ -130,6 +134,28 @@ class FileService:
         if file_row is None:
             raise errors.not_found("File not found")
         return file_row
+
+    def request_download_url(self, owner: User, file_id: UUID) -> RequestDownloadUrlResponse:
+        file_row = self.get_file(owner, file_id)
+        if file_row.status != FileStatus.ready:
+            raise errors.bad_request("File is not ready to download")
+        if file_row.object is None:
+            raise errors.bad_request("File has no storage object")
+
+        download_url = s3_store.create_presigned_download_url(
+            bucket=file_row.object.s3_bucket,
+            key=file_row.object.s3_key,
+            download_filename=file_row.name,
+            content_type=file_row.mime_type,
+        )
+        return RequestDownloadUrlResponse(
+            file_id=file_row.id,
+            file_name=file_row.name,
+            download_url=download_url,
+            expires_in_seconds=settings.s3_presign_expire_seconds,
+            size_bytes=file_row.size_bytes,
+            mime_type=file_row.mime_type,
+        )
 
     def list_folder_files(
         self, owner: User, folder_id: UUID | None

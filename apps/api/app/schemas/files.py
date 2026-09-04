@@ -32,3 +32,13 @@ class FileResponse(BaseModel):
     is_trashed: bool
     created_at: datetime
     updated_at: datetime
+
+
+class RequestDownloadUrlResponse(BaseModel):
+    file_id: UUID
+    file_name: str
+    download_url: str
+    download_method: str = "GET"
+    expires_in_seconds: int
+    size_bytes: int
+    mime_type: str | None

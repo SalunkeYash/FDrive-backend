@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models import User
 from app.schemas.files import (
     FileResponse,
+    RequestDownloadUrlResponse,
     RequestUploadUrlRequest,
     RequestUploadUrlResponse,
 )
@@ -79,3 +80,16 @@ def get_file(
 ) -> FileResponse:
     file_row = files.get_file(current_user, file_id)
     return FileResponse.model_validate(file_row)
+
+
+@router.get(
+    "/{file_id}/request-download-url",
+    response_model=RequestDownloadUrlResponse,
+    summary="Get a short-lived URL to download the file from storage",
+)
+def request_download_url(
+    file_id: UUID,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> RequestDownloadUrlResponse:
+    return files.request_download_url(current_user, file_id)

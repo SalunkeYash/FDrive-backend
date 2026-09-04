@@ -91,3 +91,73 @@ def test_quota_blocks_oversized_upload_request(client: TestClient) -> None:
         json={"file_name": "huge.bin", "size_bytes": huge},
     )
     assert response.status_code == 413
+
+
+def _create_ready_file(client: TestClient, headers: dict[str, str], size: int = 5) -> str:
+    with patch(
+        "app.services.files.s3_store.create_presigned_upload_url",
+        return_value="https://example.test/upload",
+    ):
+        requested = client.post(
+            "/api/v1/files/request-upload-url",
+            headers=headers,
+            json={
+                "file_name": "notes.txt",
+                "size_bytes": size,
+                "mime_type": "text/plain",
+            },
+        )
+    file_id = requested.json()["file_id"]
+    with patch(
+        "app.services.files.s3_store.get_object_metadata",
+        return_value={
+            "ContentLength": size,
+            "ETag": '"abc"',
+            "ContentType": "text/plain",
+        },
+    ):
+        completed = client.post(
+            f"/api/v1/files/{file_id}/complete-upload",
+            headers=headers,
+        )
+    assert completed.status_code == 200
+    return file_id
+
+
+def test_request_download_url(client: TestClient) -> None:
+    headers = _auth_header(client)
+    file_id = _create_ready_file(client, headers)
+
+    with patch(
+        "app.services.files.s3_store.create_presigned_download_url",
+        return_value="https://example.test/download",
+    ):
+        response = client.get(
+            f"/api/v1/files/{file_id}/request-download-url",
+            headers=headers,
+        )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["download_url"] == "https://example.test/download"
+    assert body["download_method"] == "GET"
+    assert body["file_name"] == "notes.txt"
+    assert body["file_id"] == file_id
+
+
+def test_download_rejects_pending_file(client: TestClient) -> None:
+    headers = _auth_header(client)
+    with patch(
+        "app.services.files.s3_store.create_presigned_upload_url",
+        return_value="https://example.test/upload",
+    ):
+        requested = client.post(
+            "/api/v1/files/request-upload-url",
+            headers=headers,
+            json={"file_name": "pending.txt", "size_bytes": 3},
+        )
+    file_id = requested.json()["file_id"]
+    response = client.get(
+        f"/api/v1/files/{file_id}/request-download-url",
+        headers=headers,
+    )
+    assert response.status_code == 400
