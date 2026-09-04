@@ -29,7 +29,10 @@ class CreateFolderRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     parent_folder_id: OptionalUUID = Field(
         default=None,
-        description="Existing folder to create inside. Omit the field (or JSON null) for the drive root.",
+        description=(
+            "Existing folder to create inside. "
+            "Omit the field (or JSON null) for the drive root."
+        ),
     )
 
 

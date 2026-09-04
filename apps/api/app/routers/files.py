@@ -1,0 +1,81 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
+
+from app.core.deps import get_current_user
+from app.db.session import get_db
+from app.models import User
+from app.schemas.files import (
+    FileResponse,
+    RequestUploadUrlRequest,
+    RequestUploadUrlResponse,
+)
+from app.services.files import FileService
+
+router = APIRouter(prefix="/files", tags=["files"])
+
+
+def get_file_service(db: Session = Depends(get_db)) -> FileService:
+    return FileService(db)
+
+
+@router.post(
+    "/request-upload-url",
+    response_model=RequestUploadUrlResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Get a presigned URL to upload a file directly to storage",
+)
+def request_upload_url(
+    body: RequestUploadUrlRequest,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> RequestUploadUrlResponse:
+    return files.request_upload_url(
+        current_user,
+        file_name=body.file_name,
+        size_bytes=body.size_bytes,
+        mime_type=body.mime_type,
+        folder_id=body.folder_id,
+    )
+
+
+@router.get(
+    "/list-folder-files",
+    response_model=list[FileResponse],
+    summary="List ready files in a folder (omit folder_id for root)",
+)
+def list_folder_files(
+    folder_id: UUID | None = Query(default=None),
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> list[FileResponse]:
+    return files.list_folder_files(current_user, folder_id)
+
+
+@router.post(
+    "/{file_id}/complete-upload",
+    response_model=FileResponse,
+    summary="Confirm the file finished uploading to storage",
+)
+def complete_upload(
+    file_id: UUID,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> FileResponse:
+    file_row = files.complete_upload(current_user, file_id)
+    return FileResponse.model_validate(file_row)
+
+
+@router.get(
+    "/{file_id}/get-file",
+    response_model=FileResponse,
+    summary="Get file metadata",
+)
+def get_file(
+    file_id: UUID,
+    current_user: User = Depends(get_current_user),
+    files: FileService = Depends(get_file_service),
+) -> FileResponse:
+    file_row = files.get_file(current_user, file_id)
+    return FileResponse.model_validate(file_row)

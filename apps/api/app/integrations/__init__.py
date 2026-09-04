@@ -1,1 +1,1 @@
-"""External integrations: S3, Redis, SQS."""
+"""External integrations (S3, Redis, SQS)."""

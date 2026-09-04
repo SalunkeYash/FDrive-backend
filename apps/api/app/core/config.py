@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     s3_secret_key: str = "minioadmin"
     s3_bucket: str = "fdrive"
     s3_region: str = "us-east-1"
+    s3_presign_expire_seconds: int = 900  # 15 minutes
 
     # Auth
     jwt_secret: str = "dev-only-change-me-fdrive-jwt-secret"
