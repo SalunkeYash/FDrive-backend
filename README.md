@@ -2,7 +2,7 @@
 
 Personal cloud drive — Vite + React frontend, FastAPI backend, Postgres metadata, S3 object storage.
 
-Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Testing: [docs/TESTING.md](docs/TESTING.md)
+Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Testing: [docs/TESTING.md](docs/TESTING.md) · Launch: [docs/LAUNCH.md](docs/LAUNCH.md)
 
 ## Stack
 
@@ -104,8 +104,8 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 | 19 CI/CD | Done |
 | 20 Monitoring + Logging | Done |
 | 21 Billing | Done |
-| 22 Production Launch | Next |
-| 23 Scaling | Planned |
+| 22 Production Launch | Done |
+| 23 Scaling | Done |
 
 ## Makefile helpers
 
