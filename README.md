@@ -49,11 +49,15 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp ../../.env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 - Health: http://localhost:8000/health  
+- Ready (DB check): http://localhost:8000/ready  
 - OpenAPI: http://localhost:8000/docs  
+
+Frontend lives in `apps/web/` — keep backend (`apps/api/`) and frontend separate.
 
 ### 3. Web
 
@@ -69,8 +73,9 @@ App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to t
 
 | Phase | Status |
 |-------|--------|
-| 01 Project Foundation | **Done** |
-| 02 Database + Data Model | Next |
+| 01 Project Foundation | Done |
+| 02 Database + Data Model | In progress |
+| 03 Authentication | Next |
 
 ## Makefile helpers
 

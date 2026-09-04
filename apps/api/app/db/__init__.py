@@ -1,1 +1,5 @@
-"""Database engine and session factories (Phase 02)."""
+"""Database engine, session, and declarative base."""
+
+from app.db.session import Base, SessionLocal, engine, get_db
+
+__all__ = ["Base", "SessionLocal", "engine", "get_db"]

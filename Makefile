@@ -1,4 +1,4 @@
-.PHONY: infra-up infra-down infra-logs api web install
+.PHONY: infra-up infra-down infra-logs api web install migrate migrate-down
 
 infra-up:
 	docker compose up -d
@@ -18,3 +18,9 @@ api:
 
 web:
 	cd apps/web && npm run dev
+
+migrate:
+	cd apps/api && . .venv/bin/activate && alembic upgrade head
+
+migrate-down:
+	cd apps/api && . .venv/bin/activate && alembic downgrade -1

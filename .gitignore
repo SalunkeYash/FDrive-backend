@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 *.egg-info/
 .eggs/
 dist/
@@ -9,27 +10,58 @@ build/
 .venv/
 venv/
 .env
-.env.local
+.env.*
+!.env.example
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+*.log
 
-# Node
+# Node / frontend
 node_modules/
 apps/web/dist/
+apps/web/.vite/
 *.local
 .npm
+.pnpm-store/
+.turbo/
+.next/
+.cache/
 
 # IDE / OS
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+*.code-workspace
 
 # Secrets & local data
 *.pem
+*.key
 docker-data/
 .minio.sys/
+*.sqlite
+*.sqlite3
+*.db
+
+# Test / tooling artifacts
+.hypothesis/
+coverage.xml
+*.cover
+.python-version
+.tool-versions
+
+# Editor / agent junk
+*.orig
+*.bak
+*.tmp
+.cursor/
+agent-transcripts/
