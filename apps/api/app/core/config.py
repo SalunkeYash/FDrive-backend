@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     auth_rate_limit_per_minute: int = 30
     enable_api_docs: bool = True
 
+    # Billing (Phase 21) — optional until Stripe is wired
+    stripe_secret_key: str | None = None
+    stripe_price_plus: str | None = None
+    stripe_price_pro: str | None = None
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

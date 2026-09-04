@@ -7,6 +7,7 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.routers import (
     account,
     auth,
+    billing,
     files,
     folders,
     health,
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router, prefix=settings.api_prefix)
     app.include_router(previews.router, prefix=settings.api_prefix)
     app.include_router(uploads.router, prefix=settings.api_prefix)
+    app.include_router(billing.router, prefix=settings.api_prefix)
     app.include_router(ops.router, prefix=settings.api_prefix)
 
     return app
