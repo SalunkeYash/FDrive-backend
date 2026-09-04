@@ -2,12 +2,349 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ink: #0b1f2a;
+  --ink-soft: #1c3644;
+  --sea: #1a6b6b;
+  --sea-bright: #218a8a;
+  --mist: #e6eef2;
+  --foam: #f4f8fa;
+  --danger: #9b2c2c;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  font-family:
-    "Segoe UI",
-    system-ui,
-    -apple-system,
-    sans-serif;
+  color: var(--ink);
+  font-family: "Figtree", system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #cfe3e6 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #d7e4ec 0%, transparent 50%),
+    linear-gradient(180deg, #f7fafb 0%, #eef3f6 100%);
+}
+
+a {
+  color: var(--sea);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.brand {
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+  animation: rise 0.6s ease both;
+}
+
+.auth-panel {
+  width: min(420px, 100%);
+  padding: 2rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  background: color-mix(in srgb, white 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.auth-panel h1 {
+  font-family: "Sora", system-ui, sans-serif;
+  font-size: 1.65rem;
+  letter-spacing: -0.03em;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.lede {
+  margin: 0 0 1.5rem;
+  color: var(--ink-soft);
+}
+
+.stack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+input[type="email"],
+input[type="password"],
+input[type="text"],
+input[type="search"] {
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  background: white;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  color: inherit;
+}
+
+input:focus {
+  outline: 2px solid color-mix(in srgb, var(--sea) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-ghost {
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  padding: 0.65rem 1rem;
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--sea);
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--sea-bright);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  color: var(--ink);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--mist);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 0.35rem 0.5rem;
+}
+.btn-ghost:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.btn-ghost.danger:hover {
+  color: var(--danger);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+.small {
+  font-size: 0.8rem;
+}
+.error {
+  color: var(--danger);
+  margin: 0;
+  font-size: 0.9rem;
+}
+.banner {
+  margin: 0.75rem 0;
+}
+
+.center-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.drive-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  animation: fade 0.45s ease both;
+}
+
+.drive-side {
+  padding: 1.5rem 1.25rem;
+  border-right: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  background: color-mix(in srgb, white 70%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.side-user {
+  margin: 0;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+
+.quota-track {
+  height: 6px;
+  background: var(--mist);
+  overflow: hidden;
+}
+.quota-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sea), #3f9a8f);
+  transition: width 0.4s ease;
+}
+
+.drive-main {
+  padding: 1.5rem 1.75rem 2.5rem;
+}
+
+.drive-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+.crumb {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+}
+.crumb:hover {
+  color: var(--sea);
+}
+.crumb + .crumb::before {
+  content: "/";
+  margin-right: 0.35rem;
+  color: color-mix(in srgb, var(--ink) 35%, transparent);
+  pointer-events: none;
+}
+
+.search {
+  display: flex;
+  gap: 0.5rem;
+  min-width: min(360px, 100%);
+}
+.search input {
+  flex: 1;
+}
+
+.toolbar {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.listing {
+  display: grid;
+  gap: 0.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  padding-top: 0.75rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0.55rem;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.folder-row {
+  cursor: pointer;
+}
+.folder-row:hover,
+.file-row:hover {
+  background: color-mix(in srgb, white 70%, var(--mist));
+}
+.row-name {
+  font-weight: 600;
+}
+.row-meta {
+  font-size: 0.85rem;
+}
+.row-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+.empty {
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  padding: 2rem 0.5rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 800px) {
+  .drive-shell {
+    grid-template-columns: 1fr;
+  }
+  .drive-side {
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .quota {
+    flex: 1 1 140px;
+  }
+  .row {
+    grid-template-columns: 1.5rem 1fr;
+  }
+  .row-meta,
+  .row-actions {
+    grid-column: 2;
+  }
+  .row-actions {
+    justify-content: flex-start;
+  }
 }
