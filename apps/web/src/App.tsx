@@ -1,24 +1,63 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useParams } from "react-router-dom";
+import Header from "@/components/headerComponents/Header";
+import SideMenu from "@/components/SideMenu";
+import MyDrive from "@/pages/MyDrive";
+import FolderView from "@/pages/FolderView";
+import Starred from "@/pages/Starred";
+import Trash from "@/pages/Trash";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import SharedLinkPage from "@/pages/SharedLinkPage";
+import { DriveProvider } from "@/context/DriveContext";
+import { useAuth } from "@/auth/AuthContext";
 
-import { useAuth } from "./auth/AuthContext";
-import { DrivePage } from "./pages/DrivePage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-
-function HomeRedirect() {
+function AppLayout() {
+  const { folderId = "" } = useParams();
   const { user, loading } = useAuth();
-  if (loading) return <div className="center-screen muted">Loading…</div>;
-  return <Navigate to={user ? "/drive" : "/login"} replace />;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bgc text-textC">
+        Loading…
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+
+  return (
+    <DriveProvider>
+      <main className="flex h-screen flex-col overflow-hidden bg-bgc">
+        <Header />
+        <section className="mb-5 flex flex-1 overflow-hidden px-5 pr-16">
+          <div>
+            <SideMenu currentFolderId={folderId} />
+          </div>
+          <div className="flex flex-1">
+            <div className="h-[90vh] w-full overflow-hidden rounded-2xl bg-white">
+              <Outlet />
+            </div>
+          </div>
+        </section>
+      </main>
+    </DriveProvider>
+  );
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/drive" element={<DrivePage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/share/:token" element={<SharedLinkPage />} />
+      <Route element={<AppLayout />}>
+        <Route index element={<Navigate to="/drive/my-drive" replace />} />
+        <Route path="drive" element={<Navigate to="/drive/my-drive" replace />} />
+        <Route path="drive/my-drive" element={<MyDrive />} />
+        <Route path="drive/folders/:folderId" element={<FolderView />} />
+        <Route path="drive/starred" element={<Starred />} />
+        <Route path="drive/trash" element={<Trash />} />
+        <Route path="*" element={<Navigate to="/drive/my-drive" replace />} />
+      </Route>
     </Routes>
   );
 }

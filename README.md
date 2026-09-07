@@ -77,7 +77,7 @@ npm install
 npm run dev
 ```
 
-App: http://localhost:5173 — Vite proxies `/health`, `/ready`, and `/api` to the API.
+App: http://localhost:5173 — Drive UI (My Drive / Starred / Bin) proxied to the API.
 
 ## Phase status
 

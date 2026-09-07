@@ -4,21 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: {
-          DEFAULT: "#0b1f2a",
-          soft: "#1c3644",
-        },
-        sea: {
-          DEFAULT: "#1a6b6b",
-          bright: "#218a8a",
-        },
-        mist: "#e6eef2",
-        foam: "#f4f8fa",
+        textC: "#444746",
+        textC2: "#4285F4",
+        bgc: "#F7F9FC",
+        darkC2: "#EDF2FC",
+        darkC: "#E1E5EA",
       },
-      fontFamily: {
-        display: ['"Sora"', "system-ui", "sans-serif"],
-        sans: ['"Figtree"', "system-ui", "sans-serif"],
-      },
+    },
+    screens: {
+      tablet: "840px",
     },
   },
   plugins: [],

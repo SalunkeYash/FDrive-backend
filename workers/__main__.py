@@ -47,11 +47,17 @@ def poll_forever() -> None:
     client = get_sqs_client()
     logger.info("worker started queue=%s", settings.sqs_queue_url)
     while True:
-        response = client.receive_message(
-            QueueUrl=settings.sqs_queue_url,
-            MaxNumberOfMessages=5,
-            WaitTimeSeconds=10,
-        )
+        try:
+            response = client.receive_message(
+                QueueUrl=settings.sqs_queue_url,
+                MaxNumberOfMessages=5,
+                WaitTimeSeconds=10,
+            )
+        except Exception:
+            logger.exception("SQS receive failed; retrying in 5s")
+            time.sleep(5)
+            continue
+
         for message in response.get("Messages", []):
             try:
                 body = json.loads(message["Body"])

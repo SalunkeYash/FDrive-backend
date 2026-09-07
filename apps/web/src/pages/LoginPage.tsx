@@ -1,17 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
+import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/AuthContext";
 
-import { ApiError } from "../api/client";
-import { useAuth } from "../auth/AuthContext";
-
-export function LoginPage() {
+export default function LoginPage() {
   const { user, loading, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!loading && user) return <Navigate to="/drive" replace />;
+  if (!loading && user) return <Navigate to="/drive/my-drive" replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -27,42 +26,51 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-shell">
-      <div className="auth-panel">
-        <p className="brand">FDrive</p>
-        <h1>Welcome back</h1>
-        <p className="lede">Sign in to open your files.</p>
-        <form onSubmit={onSubmit} className="stack">
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              autoComplete="current-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          {error && <p className="error">{error}</p>}
-          <button type="submit" className="btn-primary" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
-        <p className="muted">
-          New here? <Link to="/register">Create an account</Link>
+    <div className="flex min-h-screen items-center justify-center bg-bgc px-4">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-md space-y-4 rounded-2xl bg-white p-8 shadow-md"
+      >
+        <div className="flex items-center space-x-2">
+          <img src="/logo.png" alt="" className="h-10 w-10" />
+          <h1 className="text-2xl text-textC">Sign in to Drive</h1>
+        </div>
+        <label className="block text-sm text-textC">
+          Email
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-darkC px-3 py-2 outline-none focus:border-textC2"
+          />
+        </label>
+        <label className="block text-sm text-textC">
+          Password
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-darkC px-3 py-2 outline-none focus:border-textC2"
+          />
+        </label>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-full bg-[#1a73e8] py-2.5 font-medium text-white hover:bg-[#1765cc] disabled:opacity-60"
+        >
+          {busy ? "Signing in…" : "Sign in"}
+        </button>
+        <p className="text-center text-sm text-textC">
+          New here?{" "}
+          <Link to="/register" className="text-[#1a73e8]">
+            Create an account
+          </Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }

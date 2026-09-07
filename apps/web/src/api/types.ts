@@ -9,10 +9,8 @@ export type UserProfile = {
   id: string;
   email: string;
   display_name: string | null;
-  is_active: boolean;
   bytes_used: number;
   bytes_limit: number;
-  created_at: string;
 };
 
 export type StorageQuota = {
@@ -22,7 +20,7 @@ export type StorageQuota = {
   usage_percent: number;
 };
 
-export type FolderItem = {
+export type ApiFolder = {
   id: string;
   name: string;
   parent_id: string | null;
@@ -32,7 +30,7 @@ export type FolderItem = {
   updated_at: string;
 };
 
-export type FileItem = {
+export type ApiFile = {
   id: string;
   name: string;
   folder_id: string | null;
@@ -44,8 +42,37 @@ export type FileItem = {
   updated_at: string;
 };
 
-export type SearchDriveResponse = {
-  query: string;
-  files: FileItem[];
-  folders: FolderItem[];
+export type FolderTreeNode = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  path: string;
+  children: FolderTreeNode[];
+};
+
+export type TrashItem = {
+  resource_type: string;
+  resource_id: string;
+  name: string;
+  trashed_at: string | null;
+  size_bytes: number | null;
+};
+
+export type ShareResponse = {
+  id: string;
+  resource_type: string;
+  resource_id: string;
+  grantee_user_id: string | null;
+  role: string;
+  token: string | null;
+  expires_at: string | null;
+  created_at: string;
+};
+
+export type SharedLinkAccess = {
+  share_id: string;
+  resource_type: string;
+  resource_id: string;
+  role: string;
+  resource_name: string;
 };

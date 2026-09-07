@@ -58,7 +58,52 @@ def test_make_jpeg_thumbnail_shrinks_image() -> None:
         assert max(out.size) <= 256
 
 
-def test_request_preview_url(client: TestClient) -> None:
+def test_request_preview_url_for_video(client: TestClient) -> None:
+    headers = _register(client, f"vid-{uuid.uuid4().hex[:8]}@example.com")
+    with patch(
+        "app.services.files.s3_store.create_presigned_upload_url",
+        return_value="https://example.test/upload",
+    ):
+        requested = client.post(
+            "/api/v1/files/request-upload-url",
+            headers=headers,
+            json={
+                "file_name": "clip.mp4",
+                "size_bytes": 20,
+                "mime_type": "video/mp4",
+            },
+        )
+    file_id = requested.json()["file_id"]
+    with (
+        patch(
+            "app.services.files.s3_store.get_object_metadata",
+            return_value={"ContentLength": 20, "ETag": '"v"', "ContentType": "video/mp4"},
+        ),
+        patch("app.services.files.enqueue_job", return_value="msg"),
+    ):
+        assert (
+            client.post(
+                f"/api/v1/files/{file_id}/complete-upload",
+                headers=headers,
+            ).status_code
+            == 200
+        )
+
+    with (
+        patch("app.services.previews.s3_store.get_object_metadata", return_value={}),
+        patch(
+            "app.services.previews.s3_store.create_presigned_download_url",
+            return_value="https://example.test/video-preview",
+        ) as presign,
+    ):
+        response = client.get(
+            f"/api/v1/previews/{file_id}/request-preview-url",
+            headers=headers,
+        )
+    assert response.status_code == 200, response.text
+    assert response.json()["mime_type"] == "video/mp4"
+    assert presign.call_args.kwargs.get("inline") is True
+
     headers = _register(client, f"prev-{uuid.uuid4().hex[:8]}@example.com")
     file_id = _ready_image(client, headers)
 
@@ -106,6 +151,10 @@ def test_request_thumbnail_url_queues_when_missing(client: TestClient) -> None:
     with (
         patch("app.services.previews.s3_store.object_exists", return_value=False),
         patch("app.services.previews.enqueue_job", return_value="queued") as enqueue,
+        patch(
+            "app.services.thumbnails.generate_thumbnail_for_file",
+            return_value=False,
+        ),
     ):
         response = client.get(
             f"/api/v1/previews/{file_id}/request-thumbnail-url",

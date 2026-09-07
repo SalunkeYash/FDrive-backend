@@ -12,7 +12,7 @@ from app.integrations.sqs import enqueue_job
 from app.models import FileStatus, User
 from app.schemas.previews import PreviewUrlResponse
 from app.services import file_queries as fq
-from app.services.thumbnails import THUMB_VARIANT, is_image_mime
+from app.services.thumbnails import THUMB_VARIANT, is_media_mime
 
 
 class PreviewService:
@@ -21,8 +21,8 @@ class PreviewService:
 
     def request_thumbnail_url(self, owner: User, file_id: UUID) -> PreviewUrlResponse:
         file_row = self._require_ready_file(owner, file_id)
-        if not is_image_mime(file_row.mime_type):
-            raise errors.bad_request("Thumbnails are only available for images")
+        if not is_media_mime(file_row.mime_type):
+            raise errors.bad_request("Thumbnails are only available for images and videos")
 
         thumb_key = s3_store.build_preview_object_key(
             str(owner.id), str(file_row.id), THUMB_VARIANT
@@ -35,9 +35,17 @@ class PreviewService:
                 )
             except Exception:
                 pass
-            raise errors.not_found(
-                "Thumbnail is not ready yet. A generation job was queued; try again shortly."
-            )
+
+            # Local/dev fallback: build the thumb inline if the worker hasn't.
+            from app.services.thumbnails import generate_thumbnail_for_file
+
+            generated = generate_thumbnail_for_file(self.db, file_row.id)
+            if not generated or not s3_store.object_exists(
+                bucket=file_row.object.s3_bucket, key=thumb_key
+            ):
+                raise errors.not_found(
+                    "Thumbnail is not ready yet. A generation job was queued; try again shortly."
+                )
 
         url = s3_store.create_presigned_download_url(
             bucket=file_row.object.s3_bucket,
@@ -55,10 +63,10 @@ class PreviewService:
         )
 
     def request_preview_url(self, owner: User, file_id: UUID) -> PreviewUrlResponse:
-        """Inline preview of the original for images (browser display, not download)."""
+        """Inline preview of the original for images and videos (browser display)."""
         file_row = self._require_ready_file(owner, file_id)
-        if not is_image_mime(file_row.mime_type):
-            raise errors.bad_request("Inline preview is only available for images")
+        if not is_media_mime(file_row.mime_type):
+            raise errors.bad_request("Inline preview is only available for images and videos")
 
         try:
             s3_store.get_object_metadata(

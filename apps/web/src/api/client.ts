@@ -1,9 +1,12 @@
 import type {
-  FileItem,
-  FolderItem,
-  SearchDriveResponse,
+  ApiFile,
+  ApiFolder,
+  FolderTreeNode,
+  SharedLinkAccess,
+  ShareResponse,
   StorageQuota,
   TokenResponse,
+  TrashItem,
   UserProfile,
 } from "./types";
 
@@ -30,7 +33,6 @@ export function clearTokens(): void {
 
 export class ApiError extends Error {
   status: number;
-
   constructor(status: number, message: string) {
     super(message);
     this.status = status;
@@ -64,7 +66,6 @@ async function apiFetch<T>(
     const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
-
   const res = await fetch(path, { ...options, headers });
   if (!res.ok) throw await parseError(res);
   if (res.status === 204) return undefined as T;
@@ -109,37 +110,124 @@ export const api = {
     return apiFetch<UserProfile>("/api/v1/account/profile");
   },
 
+  updateProfile(displayName: string | null) {
+    return apiFetch<UserProfile>("/api/v1/account/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ display_name: displayName }),
+    });
+  },
+
   getStorageQuota() {
     return apiFetch<StorageQuota>("/api/v1/account/storage-quota");
   },
 
-  async listFolders(parentId?: string | null) {
-    const q =
-      parentId === undefined || parentId === null
-        ? ""
-        : `?parent_folder_id=${encodeURIComponent(parentId)}`;
-    const data = await apiFetch<{ folders: FolderItem[] }>(
-      `/api/v1/folders/list-folder-contents${q}`,
-    );
-    return data.folders;
+  listFolderTree() {
+    return apiFetch<FolderTreeNode[]>("/api/v1/folders/list-folder-tree");
   },
 
-  createFolder(name: string, parentId?: string | null) {
-    return apiFetch<FolderItem>("/api/v1/folders/create-folder", {
+  listFolderContents(parentFolderId?: string | null) {
+    const q =
+      parentFolderId == null || parentFolderId === ""
+        ? ""
+        : `?parent_folder_id=${encodeURIComponent(parentFolderId)}`;
+    return apiFetch<{ parent_folder_id: string | null; folders: ApiFolder[] }>(
+      `/api/v1/folders/list-folder-contents${q}`,
+    );
+  },
+
+  createFolder(name: string, parentFolderId?: string | null) {
+    return apiFetch<ApiFolder>("/api/v1/folders/create-folder", {
       method: "POST",
-      body: JSON.stringify({ name, parent_folder_id: parentId ?? null }),
+      body: JSON.stringify({
+        name,
+        parent_folder_id: parentFolderId || null,
+      }),
+    });
+  },
+
+  renameFolder(folderId: string, name: string) {
+    return apiFetch<ApiFolder>(`/api/v1/folders/${folderId}/rename-folder`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
     });
   },
 
   listFolderFiles(folderId?: string | null) {
     const q =
-      folderId === undefined || folderId === null
+      folderId == null || folderId === ""
         ? ""
         : `?folder_id=${encodeURIComponent(folderId)}`;
-    return apiFetch<FileItem[]>(`/api/v1/files/list-folder-files${q}`);
+    return apiFetch<ApiFile[]>(`/api/v1/files/list-folder-files${q}`);
   },
 
-  async requestUpload(file: File, folderId?: string | null) {
+  renameFile(fileId: string, fileName: string) {
+    return apiFetch<ApiFile>(`/api/v1/files/${fileId}/rename-file`, {
+      method: "PATCH",
+      body: JSON.stringify({ file_name: fileName }),
+    });
+  },
+
+  moveFile(fileId: string, destinationFolderId: string | null) {
+    return apiFetch<ApiFile>(`/api/v1/files/${fileId}/move-file`, {
+      method: "POST",
+      body: JSON.stringify({ destination_folder_id: destinationFolderId }),
+    });
+  },
+
+  moveFolder(folderId: string, destinationParentFolderId: string | null) {
+    return apiFetch<ApiFolder>(`/api/v1/folders/${folderId}/move-folder`, {
+      method: "POST",
+      body: JSON.stringify({
+        destination_parent_folder_id: destinationParentFolderId,
+      }),
+    });
+  },
+
+  createUserShare(input: {
+    resourceType: "file" | "folder";
+    resourceId: string;
+    granteeEmail: string;
+    role?: "viewer" | "editor";
+  }) {
+    return apiFetch<ShareResponse>("/api/v1/shares/create-user-share", {
+      method: "POST",
+      body: JSON.stringify({
+        resource_type: input.resourceType,
+        resource_id: input.resourceId,
+        grantee_email: input.granteeEmail,
+        role: input.role || "viewer",
+      }),
+    });
+  },
+
+  createLinkShare(input: {
+    resourceType: "file" | "folder";
+    resourceId: string;
+    role?: "viewer" | "editor";
+  }) {
+    return apiFetch<ShareResponse>("/api/v1/shares/create-link-share", {
+      method: "POST",
+      body: JSON.stringify({
+        resource_type: input.resourceType,
+        resource_id: input.resourceId,
+        role: input.role || "viewer",
+      }),
+    });
+  },
+
+  listMyShares() {
+    return apiFetch<ShareResponse[]>("/api/v1/shares/list-my-shares");
+  },
+
+  accessSharedLink(token: string) {
+    return apiFetch<SharedLinkAccess>(
+      `/api/v1/shares/access-shared-link/${encodeURIComponent(token)}`,
+      {},
+      false,
+    );
+  },
+
+  async uploadFile(file: File, folderId?: string | null) {
     const meta = await apiFetch<{
       file_id: string;
       upload_url: string;
@@ -150,42 +238,93 @@ export const api = {
         file_name: file.name,
         size_bytes: file.size,
         mime_type: file.type || null,
-        folder_id: folderId ?? null,
+        folder_id: folderId || null,
       }),
     });
 
-    const putHeaders = new Headers(meta.required_headers);
     const put = await fetch(meta.upload_url, {
       method: "PUT",
-      headers: putHeaders,
+      headers: new Headers(meta.required_headers),
       body: file,
     });
-    if (!put.ok) {
-      throw new ApiError(put.status, "Upload to storage failed");
-    }
+    if (!put.ok) throw new ApiError(put.status, "Upload to storage failed");
 
-    return apiFetch<FileItem>(`/api/v1/files/${meta.file_id}/complete-upload`, {
+    return apiFetch<ApiFile>(`/api/v1/files/${meta.file_id}/complete-upload`, {
       method: "POST",
     });
   },
 
-  async downloadFile(fileId: string) {
-    const data = await apiFetch<{
+  async getDownloadUrl(fileId: string) {
+    return apiFetch<{
       download_url: string;
       file_name: string;
     }>(`/api/v1/files/${fileId}/request-download-url`);
-    window.open(data.download_url, "_blank", "noopener,noreferrer");
+  },
+
+  async getPreviewUrl(fileId: string) {
+    return apiFetch<{
+      preview_url: string;
+      mime_type: string | null;
+    }>(`/api/v1/previews/${fileId}/request-preview-url`);
+  },
+
+  async getThumbnailUrl(fileId: string) {
+    return apiFetch<{
+      preview_url: string;
+      mime_type: string | null;
+    }>(`/api/v1/previews/${fileId}/request-thumbnail-url`);
+  },
+
+  listTrash() {
+    return apiFetch<{ items: TrashItem[] }>("/api/v1/trash/list-trash-items");
   },
 
   moveFileToTrash(fileId: string) {
-    return apiFetch<FileItem>(`/api/v1/trash/files/${fileId}/move-file-to-trash`, {
+    return apiFetch<ApiFile>(`/api/v1/trash/files/${fileId}/move-file-to-trash`, {
       method: "POST",
     });
   },
 
-  searchDrive(q: string) {
-    return apiFetch<SearchDriveResponse>(
-      `/api/v1/search/search-drive?q=${encodeURIComponent(q)}`,
+  restoreFileFromTrash(fileId: string) {
+    return apiFetch<ApiFile>(
+      `/api/v1/trash/files/${fileId}/restore-file-from-trash`,
+      { method: "POST" },
     );
+  },
+
+  permanentlyDeleteFile(fileId: string) {
+    return apiFetch<void>(
+      `/api/v1/trash/files/${fileId}/permanently-delete-file`,
+      { method: "POST" },
+    );
+  },
+
+  moveFolderToTrash(folderId: string) {
+    return apiFetch<ApiFolder>(
+      `/api/v1/trash/folders/${folderId}/move-folder-to-trash`,
+      { method: "POST" },
+    );
+  },
+
+  restoreFolderFromTrash(folderId: string) {
+    return apiFetch<ApiFolder>(
+      `/api/v1/trash/folders/${folderId}/restore-folder-from-trash`,
+      { method: "POST" },
+    );
+  },
+
+  permanentlyDeleteFolder(folderId: string) {
+    return apiFetch<void>(
+      `/api/v1/trash/folders/${folderId}/permanently-delete-folder`,
+      { method: "POST" },
+    );
+  },
+
+  searchDrive(q: string) {
+    return apiFetch<{
+      query: string;
+      files: ApiFile[];
+      folders: ApiFolder[];
+    }>(`/api/v1/search/search-drive?q=${encodeURIComponent(q)}`);
   },
 };

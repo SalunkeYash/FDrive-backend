@@ -7,14 +7,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-
 import {
   api,
   clearTokens,
   getAccessToken,
   storeTokens,
-} from "../api/client";
-import type { UserProfile } from "../api/types";
+} from "@/api/client";
+import type { UserProfile } from "@/api/types";
 
 type AuthState = {
   user: UserProfile | null;
@@ -27,6 +26,7 @@ type AuthState = {
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateDisplayName: (displayName: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -40,8 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       return;
     }
-    const profile = await api.getProfile();
-    setUser(profile);
+    setUser(await api.getProfile());
   }, []);
 
   useEffect(() => {
@@ -65,18 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const tokens = await api.login(email, password);
-    storeTokens(tokens);
-    const profile = await api.getProfile();
-    setUser(profile);
+    storeTokens(await api.login(email, password));
+    setUser(await api.getProfile());
   }, []);
 
   const register = useCallback(
     async (email: string, password: string, displayName?: string) => {
-      const tokens = await api.registerAccount(email, password, displayName);
-      storeTokens(tokens);
-      const profile = await api.getProfile();
-      setUser(profile);
+      storeTokens(await api.registerAccount(email, password, displayName));
+      setUser(await api.getProfile());
     },
     [],
   );
@@ -87,9 +82,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateDisplayName = useCallback(async (displayName: string) => {
+    const trimmed = displayName.trim();
+    setUser(await api.updateProfile(trimmed || null));
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refreshProfile }),
-    [user, loading, login, register, logout, refreshProfile],
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      refreshProfile,
+      updateDisplayName,
+    }),
+    [
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      refreshProfile,
+      updateDisplayName,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
