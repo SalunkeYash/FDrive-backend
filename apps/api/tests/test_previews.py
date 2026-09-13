@@ -58,6 +58,21 @@ def test_make_jpeg_thumbnail_shrinks_image() -> None:
         assert max(out.size) <= 256
 
 
+def test_make_jpeg_thumbnail_applies_exif_orientation() -> None:
+    """Orientation 6 = rotate 90° CW for display; landscape pixels become portrait."""
+    img = Image.new("RGB", (200, 100), color=(255, 0, 0))
+    exif = img.getexif()
+    exif[0x0112] = 6  # Orientation tag
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", exif=exif)
+
+    thumb = make_jpeg_thumbnail(buf.getvalue())
+    with Image.open(io.BytesIO(thumb)) as out:
+        width, height = out.size
+        assert height >= width
+        assert max(out.size) <= 256
+
+
 def test_request_preview_url_for_video(client: TestClient) -> None:
     headers = _register(client, f"vid-{uuid.uuid4().hex[:8]}@example.com")
     with patch(

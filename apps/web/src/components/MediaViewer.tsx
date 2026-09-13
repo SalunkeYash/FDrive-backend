@@ -48,7 +48,7 @@ function MediaViewer({
           <img
             src={media.url}
             alt={media.name}
-            className="max-h-[80vh] max-w-[95vw] object-contain"
+            className="max-h-[80vh] max-w-[95vw] object-contain [image-orientation:from-image]"
           />
         ) : (
           <div className="p-8 text-white">

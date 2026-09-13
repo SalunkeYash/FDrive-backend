@@ -94,7 +94,7 @@ function GetFiles({ folderId, select }: { folderId: string; select: string }) {
                 src={file.fileLink}
                 alt={file.fileName}
                 draggable={false}
-                className="h-full w-full rounded-sm object-cover object-center"
+                className="h-full w-full rounded-sm object-cover object-center [image-orientation:from-image]"
               />
               {isVideo && (
                 <span className="absolute inset-0 flex items-center justify-center">
@@ -131,7 +131,7 @@ function GetFiles({ folderId, select }: { folderId: string; select: string }) {
                   <img
                     src={file.fileLink}
                     alt=""
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover [image-orientation:from-image]"
                     draggable={false}
                   />
                 ) : (

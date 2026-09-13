@@ -16,7 +16,7 @@ from app.models import File, FileStatus
 
 logger = logging.getLogger("fdrive.thumbnails")
 
-THUMB_VARIANT = "thumb"
+THUMB_VARIANT = "thumb_v2"
 THUMB_MAX_SIZE = (256, 256)
 IMAGE_MIME_PREFIXES = ("image/",)
 VIDEO_MIME_PREFIXES = ("video/",)
@@ -39,9 +39,13 @@ def is_media_mime(mime_type: str | None) -> bool:
 
 
 def make_jpeg_thumbnail(image_bytes: bytes, max_size: tuple[int, int] = THUMB_MAX_SIZE) -> bytes:
-    from PIL import Image
+    """Shrink an image to a JPEG thumb, honoring EXIF orientation from cameras/phones."""
+    from PIL import Image, ImageOps
 
     with Image.open(io.BytesIO(image_bytes)) as img:
+        # Cameras often store landscape pixels + an EXIF Orientation tag.
+        # Apply that before resizing so thumbs (and later uploads) look upright.
+        img = ImageOps.exif_transpose(img) or img
         img = img.convert("RGB")
         img.thumbnail(max_size)
         out = io.BytesIO()
