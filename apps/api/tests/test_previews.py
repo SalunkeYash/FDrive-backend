@@ -73,6 +73,52 @@ def test_make_jpeg_thumbnail_applies_exif_orientation() -> None:
         assert max(out.size) <= 256
 
 
+def test_raw_file_detection() -> None:
+    from app.services.thumbnails import is_media_mime, is_raw_file
+
+    assert is_raw_file("image/x-canon-cr2", "shot.CR2")
+    assert is_raw_file("image/x-adobe-dng", "scan.dng")
+    assert is_raw_file(None, "photo.NEF")
+    assert is_raw_file("application/octet-stream", "img.arw")
+    assert not is_raw_file("image/jpeg", "photo.jpg")
+    assert not is_raw_file("image/png", "diagram.png")
+    assert is_media_mime("image/x-nikon-nef", "a.nef")
+    assert is_media_mime(None, "b.cr3")
+
+
+def test_make_raw_jpeg_thumbnail_uses_embedded_jpeg(monkeypatch) -> None:
+    """Simulate a RAW file that only exposes an embedded JPEG preview."""
+    import types
+
+    import rawpy as real_rawpy
+
+    from app.services.thumbnails import make_raw_jpeg_thumbnail
+
+    jpeg_buf = io.BytesIO()
+    Image.new("RGB", (640, 480), color=(10, 20, 30)).save(jpeg_buf, format="JPEG")
+    jpeg_bytes = jpeg_buf.getvalue()
+
+    class FakeThumb:
+        format = real_rawpy.ThumbFormat.JPEG
+        data = jpeg_bytes
+
+    class FakeRaw:
+        def extract_thumb(self):
+            return FakeThumb()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setattr(real_rawpy, "imread", lambda _buf: FakeRaw())
+    thumb = make_raw_jpeg_thumbnail(b"not-a-real-raw")
+    assert thumb[:2] == b"\xff\xd8"
+    with Image.open(io.BytesIO(thumb)) as out:
+        assert max(out.size) <= 256
+
+
 def test_request_preview_url_for_video(client: TestClient) -> None:
     headers = _register(client, f"vid-{uuid.uuid4().hex[:8]}@example.com")
     with patch(

@@ -19,7 +19,7 @@ def get_preview_service(db: Session = Depends(get_db)) -> PreviewService:
 @router.get(
     "/{file_id}/request-thumbnail-url",
     response_model=PreviewUrlResponse,
-    summary="Get a presigned URL for an image or video thumbnail",
+    summary="Get a presigned URL for an image, RAW, or video thumbnail",
 )
 def request_thumbnail_url(
     file_id: UUID,
@@ -32,7 +32,7 @@ def request_thumbnail_url(
 @router.get(
     "/{file_id}/request-preview-url",
     response_model=PreviewUrlResponse,
-    summary="Get a presigned inline preview URL for an image or video",
+    summary="Get a presigned inline preview URL (JPEG for RAW; original for images/videos)",
 )
 def request_preview_url(
     file_id: UUID,
