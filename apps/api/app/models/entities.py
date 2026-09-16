@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -70,6 +71,14 @@ class Folder(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("owner_id", "parent_id", "name", name="uq_folders_owner_parent_name"),
         Index("ix_folders_owner_parent", "owner_id", "parent_id"),
+        # pg_trgm GIN — speeds ILIKE '%q%' without a search engine (see migration e9a1b2c3d4f5)
+        Index(
+            "ix_folders_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+            postgresql_where=text("is_trashed = false"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -105,6 +114,14 @@ class File(Base, TimestampMixin):
     __table_args__ = (
         Index("ix_files_owner_folder", "owner_id", "folder_id"),
         Index("ix_files_owner_name", "owner_id", "name"),
+        # pg_trgm GIN — speeds ILIKE '%q%' without a search engine (see migration e9a1b2c3d4f5)
+        Index(
+            "ix_files_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+            postgresql_where=text("is_trashed = false AND status = 'ready'"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

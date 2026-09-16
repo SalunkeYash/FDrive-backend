@@ -9,7 +9,7 @@ FDrive stays a **modular monolith** until metrics force a split.
 3. **Postgres** — larger instance class; read replica only if read-heavy browse/search justifies it
 4. **Redis** — ElastiCache node size for rate-limit / cache pressure
 5. **S3** — already scales; watch request rates and multipart part size tuning
-6. **Search** — move from `ILIKE` to `tsvector` / OpenSearch when name search is slow at volume
+6. **Search** — name search uses Postgres `pg_trgm` GIN indexes (still simple `ILIKE`). Only add OpenSearch if search load or ranking needs grow beyond that
 
 ## Split candidates (only when needed)
 
