@@ -70,8 +70,15 @@ function GetFolders({
           condition = folder.isFolder && folder.isStarred && !folder.isTrashed;
         else if (select === "trashed")
           condition = folder.isFolder && folder.isTrashed;
+        else if (select === "shared-with-me")
+          condition =
+            folder.isFolder &&
+            !folder.isTrashed &&
+            Boolean(folder.isSharedWithMe) &&
+            folder.folderId === "";
         if (!condition) return null;
-        if (!matchesDriveFilters(folder, filters)) return null;
+        if (select !== "shared-with-me" && !matchesDriveFilters(folder, filters))
+          return null;
 
         const openFolder = () => {
           if (select !== "trashed") {

@@ -10,7 +10,7 @@ import fileIcons from "./fileIcons";
 import type { ProgressIndicatorProps } from "@/types";
 
 function ProgressIndicator({ uploads, setUploads }: ProgressIndicatorProps) {
-  const [minimize, setMinimize] = useState(true);
+  const [minimize, setMinimize] = useState(false);
   const { openOrDownloadFile } = useDrive();
   const activeUploads = uploads.filter((upload) => upload.progress < 100);
   const isUploading = activeUploads.length > 0;
@@ -26,7 +26,9 @@ function ProgressIndicator({ uploads, setUploads }: ProgressIndicatorProps) {
           void openOrDownloadFile(upload.fileId, "open");
         }}
         className={`flex items-center justify-between bg-white py-2.5 pl-4 pr-2 ${
-          isReady && upload.fileId ? "cursor-pointer hover:bg-darkC" : "cursor-default"
+          isReady && upload.fileId
+            ? "cursor-pointer hover:bg-darkC"
+            : "cursor-default"
         }`}
       >
         <div className="flex items-center space-x-3">
@@ -49,10 +51,10 @@ function ProgressIndicator({ uploads, setUploads }: ProgressIndicatorProps) {
   if (uploads.length === 0) return null;
 
   return (
-    <div className="absolute bottom-0 w-screen">
+    <div className="pointer-events-none fixed bottom-0 right-0 z-30 p-0">
       <div
-        className={`absolute right-8 z-20 w-[23rem] overflow-hidden rounded-t-2xl pb-4 shadow-sm shadow-textC tablet:right-10 ${
-          minimize ? "-bottom-4" : "-top-10"
+        className={`pointer-events-auto w-[23rem] overflow-hidden rounded-t-2xl bg-white shadow-lg ring-1 ring-[#dadce0] ${
+          minimize ? "max-h-12" : "max-h-80"
         }`}
       >
         <div className="flex items-center justify-between bg-bgc py-2 pl-4 pr-2">
@@ -71,13 +73,13 @@ function ProgressIndicator({ uploads, setUploads }: ProgressIndicatorProps) {
           )}
           <div className="flex items-center">
             {minimize ? (
-              <IoIosArrowDown
-                onClick={() => setMinimize(!minimize)}
+              <IoIosArrowUp
+                onClick={() => setMinimize(false)}
                 className="h-9 w-9 cursor-pointer rounded-full p-2 hover:bg-darkC"
               />
             ) : (
-              <IoIosArrowUp
-                onClick={() => setMinimize(!minimize)}
+              <IoIosArrowDown
+                onClick={() => setMinimize(true)}
                 className="h-9 w-9 cursor-pointer rounded-full p-2 hover:bg-darkC"
               />
             )}
@@ -87,7 +89,9 @@ function ProgressIndicator({ uploads, setUploads }: ProgressIndicatorProps) {
             />
           </div>
         </div>
-        <div className="flex max-h-60 flex-col overflow-y-scroll">{fileNames}</div>
+        {!minimize && (
+          <div className="flex max-h-60 flex-col overflow-y-auto">{fileNames}</div>
+        )}
       </div>
     </div>
   );

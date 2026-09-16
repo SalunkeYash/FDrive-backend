@@ -8,7 +8,26 @@ import fileIcons from "./fileIcons";
 import FileDropDown from "./FileDropDown";
 import Rename from "./Rename";
 
-const IMAGE_EXTS = ["jpg", "ico", "webp", "png", "jpeg", "gif", "jfif", "bmp"];
+const IMAGE_EXTS = [
+  "jpg",
+  "ico",
+  "webp",
+  "png",
+  "jpeg",
+  "gif",
+  "jfif",
+  "bmp",
+  "heic",
+  "raw",
+  "cr2",
+  "cr3",
+  "nef",
+  "arw",
+  "dng",
+  "orf",
+  "rw2",
+  "raf",
+];
 const VIDEO_EXTS = ["mp4", "webm", "mov", "mkv", "m4v"];
 
 function GetFiles({ folderId, select }: { folderId: string; select: string }) {
@@ -72,8 +91,15 @@ function GetFiles({ folderId, select }: { folderId: string; select: string }) {
           condition = !file.isFolder && file.isStarred && !file.isTrashed;
         else if (select === "trashed")
           condition = !file.isFolder && file.isTrashed;
+        else if (select === "shared-with-me")
+          condition =
+            !file.isFolder &&
+            !file.isTrashed &&
+            Boolean(file.isSharedWithMe) &&
+            file.folderId === "";
         if (!condition) return null;
-        if (!matchesDriveFilters(file, filters)) return null;
+        if (select !== "shared-with-me" && !matchesDriveFilters(file, filters))
+          return null;
 
         const icon =
           fileIcons[file.fileExtension as keyof typeof fileIcons] ??

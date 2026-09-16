@@ -1,14 +1,16 @@
-"""Permission checks for owners and share grantees."""
+"""Permission checks for owners and share grantees (including folder inheritance)."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import errors
 from app.models import File, Folder, Share, ShareRole, User
+from app.services import folder_queries as fq
 
 
 def _share_active(share: Share) -> bool:
@@ -43,29 +45,125 @@ def get_share_by_token(db: Session, token: str) -> Share | None:
     return None
 
 
+def _folder_and_ancestor_ids(folder: Folder) -> list[UUID]:
+    """Closest-first: folder itself, then parents from path."""
+    ids: list[UUID] = [folder.id]
+    for part in reversed(folder.path.strip("/").split("/")):
+        if part:
+            ids.append(UUID(part))
+    return ids
+
+
+def get_effective_folder_share(
+    db: Session, *, user_id: UUID, folder: Folder
+) -> Share | None:
+    """Direct folder share, or share on an ancestor folder."""
+    for folder_id in _folder_and_ancestor_ids(folder):
+        share = get_share_for_user(
+            db, user_id=user_id, resource_type="folder", resource_id=folder_id
+        )
+        if share is not None:
+            return share
+    return None
+
+
+def get_effective_file_share(db: Session, *, user_id: UUID, file_row: File) -> Share | None:
+    """Direct file share, or share on the containing folder / ancestors."""
+    direct = get_share_for_user(
+        db, user_id=user_id, resource_type="file", resource_id=file_row.id
+    )
+    if direct is not None:
+        return direct
+    if file_row.folder_id is None:
+        return None
+    folder = fq.get_folder_by_id(db, file_row.folder_id)
+    if folder is None or folder.is_trashed:
+        return None
+    return get_effective_folder_share(db, user_id=user_id, folder=folder)
+
+
 def can_view_file(db: Session, user: User, file_row: File) -> bool:
+    if file_row.is_trashed:
+        return file_row.owner_id == user.id
     if file_row.owner_id == user.id:
         return True
-    return get_share_for_user(
-        db, user_id=user.id, resource_type="file", resource_id=file_row.id
-    ) is not None
+    return get_effective_file_share(db, user_id=user.id, file_row=file_row) is not None
 
 
 def can_edit_file(db: Session, user: User, file_row: File) -> bool:
+    if file_row.is_trashed:
+        return file_row.owner_id == user.id
     if file_row.owner_id == user.id:
         return True
-    share = get_share_for_user(
-        db, user_id=user.id, resource_type="file", resource_id=file_row.id
-    )
+    share = get_effective_file_share(db, user_id=user.id, file_row=file_row)
     return share is not None and share.role == ShareRole.editor
 
 
 def can_view_folder(db: Session, user: User, folder: Folder) -> bool:
+    if folder.is_trashed:
+        return folder.owner_id == user.id
     if folder.owner_id == user.id:
         return True
-    return get_share_for_user(
-        db, user_id=user.id, resource_type="folder", resource_id=folder.id
-    ) is not None
+    return get_effective_folder_share(db, user_id=user.id, folder=folder) is not None
+
+
+def can_edit_folder(db: Session, user: User, folder: Folder) -> bool:
+    if folder.is_trashed:
+        return folder.owner_id == user.id
+    if folder.owner_id == user.id:
+        return True
+    share = get_effective_folder_share(db, user_id=user.id, folder=folder)
+    return share is not None and share.role == ShareRole.editor
+
+
+def role_for_file(db: Session, user: User, file_row: File) -> str | None:
+    if file_row.owner_id == user.id:
+        return "owner"
+    share = get_effective_file_share(db, user_id=user.id, file_row=file_row)
+    if share is None:
+        return None
+    return share.role.value if hasattr(share.role, "value") else str(share.role)
+
+
+def role_for_folder(db: Session, user: User, folder: Folder) -> str | None:
+    if folder.owner_id == user.id:
+        return "owner"
+    share = get_effective_folder_share(db, user_id=user.id, folder=folder)
+    if share is None:
+        return None
+    return share.role.value if hasattr(share.role, "value") else str(share.role)
+
+
+def require_view_file(db: Session, user: User, file_id: UUID) -> File:
+    from app.services import file_queries as file_q
+
+    file_row = file_q.get_file_by_id(db, file_id)
+    if file_row is None or not can_view_file(db, user, file_row):
+        raise errors.not_found("File not found")
+    return file_row
+
+
+def require_edit_file(db: Session, user: User, file_id: UUID) -> File:
+    from app.services import file_queries as file_q
+
+    file_row = file_q.get_file_by_id(db, file_id)
+    if file_row is None or not can_edit_file(db, user, file_row):
+        raise errors.not_found("File not found")
+    return file_row
+
+
+def require_view_folder(db: Session, user: User, folder_id: UUID) -> Folder:
+    folder = fq.get_folder_by_id(db, folder_id)
+    if folder is None or folder.is_trashed or not can_view_folder(db, user, folder):
+        raise errors.not_found("Folder not found")
+    return folder
+
+
+def require_edit_folder(db: Session, user: User, folder_id: UUID) -> Folder:
+    folder = fq.get_folder_by_id(db, folder_id)
+    if folder is None or folder.is_trashed or not can_edit_folder(db, user, folder):
+        raise errors.not_found("Folder not found")
+    return folder
 
 
 def list_shares_for_owner(db: Session, owner_id: UUID) -> list[Share]:
@@ -79,10 +177,11 @@ def list_shares_for_owner(db: Session, owner_id: UUID) -> list[Share]:
 
 
 def list_shares_with_me(db: Session, user_id: UUID) -> list[Share]:
-    return list(
+    shares = list(
         db.scalars(
-            select(Share).where(
-                or_(Share.grantee_user_id == user_id),
-            ).order_by(Share.created_at.desc())
+            select(Share)
+            .where(Share.grantee_user_id == user_id)
+            .order_by(Share.created_at.desc())
         ).all()
     )
+    return [s for s in shares if _share_active(s)]

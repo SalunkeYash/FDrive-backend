@@ -37,6 +37,9 @@ function FileDropDown({
   const [showShare, setShowShare] = useState(false);
 
   const closeMenu = () => setOpenMenu("");
+  const role = file.accessRole ?? "owner";
+  const isOwner = role === "owner";
+  const canEdit = role === "owner" || role === "editor";
 
   return (
     <>
@@ -60,14 +63,16 @@ function FileDropDown({
               <span className="text-sm">Open</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowShare(true)}
-              className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
-            >
-              <MdOutlineShare className="h-5 w-5" />
-              <span className="text-sm">Share</span>
-            </button>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setShowShare(true)}
+                className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
+              >
+                <MdOutlineShare className="h-5 w-5" />
+                <span className="text-sm">Share</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -86,38 +91,42 @@ function FileDropDown({
               <span className="text-sm">Download</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setRenameToggle(file.id);
-              }}
-              className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
-            >
-              <MdDriveFileRenameOutline className="h-5 w-5" />
-              <span className="text-sm">Rename</span>
-            </button>
-
-            <div className="border-t border-[#e0e3e7]">
+            {canEdit && (
               <button
                 type="button"
-                onClick={() => setShowOrganize((prev) => !prev)}
+                onClick={() => {
+                  closeMenu();
+                  setRenameToggle(file.id);
+                }}
                 className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
               >
-                <RiFolderSettingsLine className="h-5 w-5" />
-                <span className="text-sm">Organize</span>
+                <MdDriveFileRenameOutline className="h-5 w-5" />
+                <span className="text-sm">Rename</span>
               </button>
-              {showOrganize && (
+            )}
+
+            {canEdit && (
+              <div className="border-t border-[#e0e3e7]">
                 <button
                   type="button"
-                  onClick={() => setShowMove(true)}
-                  className="flex w-full items-center space-x-3 bg-[#f8fafc] py-1.5 pl-10 pr-3 hover:bg-[#ddd]"
+                  onClick={() => setShowOrganize((prev) => !prev)}
+                  className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
                 >
-                  <MdOutlineDriveFileMove className="h-5 w-5" />
-                  <span className="text-sm">Move</span>
+                  <RiFolderSettingsLine className="h-5 w-5" />
+                  <span className="text-sm">Organize</span>
                 </button>
-              )}
-            </div>
+                {showOrganize && (
+                  <button
+                    type="button"
+                    onClick={() => setShowMove(true)}
+                    className="flex w-full items-center space-x-3 bg-[#f8fafc] py-1.5 pl-10 pr-3 hover:bg-[#ddd]"
+                  >
+                    <MdOutlineDriveFileMove className="h-5 w-5" />
+                    <span className="text-sm">Move</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             <button
               type="button"
@@ -137,17 +146,19 @@ function FileDropDown({
               </span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                void trashEntry(file.id, true);
-              }}
-              className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
-            >
-              <RiDeleteBin6Line className="h-5 w-5" />
-              <span className="text-sm">Move to bin</span>
-            </button>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  closeMenu();
+                  void trashEntry(file.id, true);
+                }}
+                className="flex w-full items-center space-x-3 px-3 py-1.5 hover:bg-[#ddd]"
+              >
+                <RiDeleteBin6Line className="h-5 w-5" />
+                <span className="text-sm">Move to bin</span>
+              </button>
+            )}
           </>
         ) : (
           <>

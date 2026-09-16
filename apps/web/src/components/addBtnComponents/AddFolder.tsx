@@ -6,28 +6,39 @@ function AddFolder({
   setFolderName,
   uploadFolder,
 }: folderToggleProps) {
+  const [busy, setBusy] = useState(false);
+
   const addFolder = async () => {
-    const createdId = await uploadFolder();
-    if (createdId) setFolderToggle(false);
+    setBusy(true);
+    try {
+      const createdId = await uploadFolder();
+      if (createdId) setFolderToggle(false);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div
       onClick={() => setFolderToggle(false)}
-      className="absolute -left-5 -top-20 z-20 flex h-screen w-screen items-center justify-center bg-darkC2/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-96 space-y-6 rounded-xl bg-white p-5 shadow-lg shadow-[#bbb]"
+        className="w-full max-w-md space-y-6 rounded-xl bg-white p-5 shadow-lg"
       >
-        <h2 className="text-2xl">New folder</h2>
+        <h2 className="text-2xl text-textC">New folder</h2>
         <input
           className="w-full rounded-md border border-textC py-2 indent-5 outline-textC2"
           type="text"
           placeholder="Untitled folder"
+          autoFocus
           onChange={(e) => setFolderName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !busy) void addFolder();
+          }}
         />
-        <div className="flex w-full justify-end space-x-5 pr-3 font-medium text-textC2">
+        <div className="flex w-full justify-end space-x-3 font-medium text-textC2">
           <button
             type="button"
             onClick={() => setFolderToggle(false)}
@@ -36,8 +47,10 @@ function AddFolder({
             Cancel
           </button>
           <button
+            type="button"
+            disabled={busy}
             onClick={() => void addFolder()}
-            className="rounded-full px-3 py-2 hover:bg-darkC2"
+            className="rounded-full px-3 py-2 hover:bg-darkC2 disabled:opacity-50"
           >
             Create
           </button>

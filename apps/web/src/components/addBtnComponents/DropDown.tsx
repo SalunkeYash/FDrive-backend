@@ -9,31 +9,48 @@ function DropDown({
   uploadFolderFiles,
 }: folderToggleAndUpload) {
   return (
-    <div
-      onClick={() => setIsDropDown(false)}
-      className="absolute -left-5 -top-20 flex h-screen w-screen items-center justify-center"
-    >
+    <>
+      {/* Full-screen click catcher — does not shift layout */}
+      <div
+        className="fixed inset-0 z-40"
+        onClick={() => setIsDropDown(false)}
+        aria-hidden
+      />
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute left-6 top-[68px] w-72 rounded-md bg-white text-textC shadow-md shadow-[#bbb]"
+        className="absolute left-0 top-[3.75rem] z-50 w-72 overflow-hidden rounded-2xl bg-white text-textC shadow-lg ring-1 ring-[#dadce0]"
       >
-        <div className="border-b py-2">
+        <div className="border-b border-[#e0e3e7] py-2">
           <button
-            onClick={() => setFolderToggle(true)}
-            className="flex w-full items-center space-x-3 px-4 py-1.5 hover:bg-darkC"
+            type="button"
+            onClick={() => {
+              setFolderToggle(true);
+              setIsDropDown(false);
+            }}
+            className="flex w-full items-center space-x-3 px-4 py-2 hover:bg-darkC"
           >
             <MdOutlineCreateNewFolder className="h-5 w-5" />
             <span>New folder</span>
           </button>
         </div>
-        <div className="border-b py-2">
+        <div className="py-2">
           <UploadFileBtn
-            uploadFile={uploadFile}
-            uploadFolderFiles={uploadFolderFiles}
+            uploadFile={(e) => {
+              uploadFile(e);
+              setIsDropDown(false);
+            }}
+            uploadFolderFiles={
+              uploadFolderFiles
+                ? (e) => {
+                    uploadFolderFiles(e);
+                    setIsDropDown(false);
+                  }
+                : undefined
+            }
           />
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

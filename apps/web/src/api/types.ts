@@ -22,16 +22,19 @@ export type StorageQuota = {
 
 export type ApiFolder = {
   id: string;
+  owner_id?: string;
   name: string;
   parent_id: string | null;
   path: string;
   is_trashed: boolean;
   created_at: string;
   updated_at: string;
+  access_role?: string | null;
 };
 
 export type ApiFile = {
   id: string;
+  owner_id?: string;
   name: string;
   folder_id: string | null;
   mime_type: string | null;
@@ -40,6 +43,7 @@ export type ApiFile = {
   is_trashed: boolean;
   created_at: string;
   updated_at: string;
+  access_role?: string | null;
 };
 
 export type FolderTreeNode = {
@@ -67,6 +71,20 @@ export type ShareResponse = {
   token: string | null;
   expires_at: string | null;
   created_at: string;
+};
+
+export type SharedWithMeItem = {
+  share_id: string;
+  resource_type: string;
+  resource_id: string;
+  role: string;
+  resource_name: string;
+  mime_type?: string | null;
+  size_bytes?: number | null;
+  folder_id?: string | null;
+  parent_id?: string | null;
+  updated_at?: string | null;
+  is_trashed: boolean;
 };
 
 export type SharedLinkAccess = {

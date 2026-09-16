@@ -36,3 +36,17 @@ class SharedLinkAccessResponse(BaseModel):
     resource_id: UUID
     role: str
     resource_name: str
+
+
+class SharedWithMeItem(BaseModel):
+    share_id: UUID
+    resource_type: str
+    resource_id: UUID
+    role: str
+    resource_name: str
+    mime_type: str | None = None
+    size_bytes: int | None = None
+    folder_id: UUID | None = None
+    parent_id: UUID | None = None
+    updated_at: datetime | None = None
+    is_trashed: bool = False

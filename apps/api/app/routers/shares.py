@@ -11,6 +11,7 @@ from app.schemas.shares import (
     CreateUserShareRequest,
     SharedLinkAccessResponse,
     ShareResponse,
+    SharedWithMeItem,
 )
 from app.services.shares import ShareService
 
@@ -76,13 +77,13 @@ def list_my_shares(
 
 @router.get(
     "/list-shared-with-me",
-    response_model=list[ShareResponse],
+    response_model=list[SharedWithMeItem],
     summary="List items shared with you",
 )
 def list_shared_with_me(
     current_user: User = Depends(get_current_user),
     shares: ShareService = Depends(get_share_service),
-) -> list[ShareResponse]:
+) -> list[SharedWithMeItem]:
     return shares.list_shared_with_me(current_user)
 
 

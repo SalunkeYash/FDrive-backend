@@ -3,6 +3,7 @@ import type {
   ApiFolder,
   FolderTreeNode,
   SharedLinkAccess,
+  SharedWithMeItem,
   ShareResponse,
   StorageQuota,
   TokenResponse,
@@ -217,6 +218,10 @@ export const api = {
 
   listMyShares() {
     return apiFetch<ShareResponse[]>("/api/v1/shares/list-my-shares");
+  },
+
+  listSharedWithMe() {
+    return apiFetch<SharedWithMeItem[]>("/api/v1/shares/list-shared-with-me");
   },
 
   accessSharedLink(token: string) {

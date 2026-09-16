@@ -26,7 +26,31 @@ import {
 
 const STARRED_KEY = "fdrive-starred-ids";
 const VIEW_MODE_KEY = "fdrive-view-mode";
-const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "ico", "jfif", "bmp", "svg"]);
+const IMAGE_EXTS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "ico",
+  "jfif",
+  "bmp",
+  "svg",
+  "heic",
+  "raw",
+  "cr2",
+  "cr3",
+  "nef",
+  "nrw",
+  "arw",
+  "dng",
+  "orf",
+  "rw2",
+  "pef",
+  "srw",
+  "raf",
+  "x3f",
+]);
 const VIDEO_EXTS = new Set(["mp4", "webm", "mov", "mkv", "m4v", "avi"]);
 
 type DriveContextValue = {
@@ -56,6 +80,8 @@ type DriveContextValue = {
   deleteEntry: (id: string) => Promise<void>;
   getByFolder: (folderId: string) => FileEntry[];
   getBreadcrumbs: (folderId: string) => { id: string; label: string }[];
+  ensureFolderLoaded: (folderId: string) => Promise<void>;
+  canEditFolder: (folderId: string) => boolean;
   openOrDownloadFile: (fileId: string, mode?: "open" | "download") => Promise<void>;
   downloadFolder: (folderId: string) => Promise<void>;
   uploadDropped: (
@@ -96,10 +122,18 @@ function isMediaEntry(entry: FileEntry): boolean {
   return IMAGE_EXTS.has(entry.fileExtension) || VIDEO_EXTS.has(entry.fileExtension);
 }
 
+function asAccessRole(
+  role: string | null | undefined,
+): "owner" | "viewer" | "editor" | undefined {
+  if (role === "owner" || role === "viewer" || role === "editor") return role;
+  return undefined;
+}
+
 function mapFolder(
   folder: ApiFolder,
   starred: Set<string>,
   sharedIds: Set<string>,
+  extras?: Partial<FileEntry>,
 ): FileEntry {
   return {
     id: folder.id,
@@ -113,6 +147,9 @@ function mapFolder(
     folderId: folder.parent_id ?? "",
     updatedAt: folder.updated_at,
     isShared: sharedIds.has(folder.id),
+    ownerId: folder.owner_id,
+    accessRole: asAccessRole(folder.access_role) ?? (folder.owner_id ? undefined : "owner"),
+    ...extras,
   };
 }
 
@@ -120,6 +157,7 @@ function mapFile(
   file: ApiFile,
   starred: Set<string>,
   sharedIds: Set<string>,
+  extras?: Partial<FileEntry>,
 ): FileEntry {
   return {
     id: file.id,
@@ -135,6 +173,9 @@ function mapFile(
     mimeType: file.mime_type,
     updatedAt: file.updated_at,
     isShared: sharedIds.has(file.id),
+    ownerId: file.owner_id,
+    accessRole: asAccessRole(file.access_role),
+    ...extras,
   };
 }
 
@@ -258,15 +299,18 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       const stars = loadStarred();
       setStarred(stars);
 
-      const [tree, trash, quotaData, rootFiles, myShares] = await Promise.all([
-        api.listFolderTree(),
-        api.listTrash(),
-        api.getStorageQuota(),
-        api.listFolderFiles(null),
-        api.listMyShares().catch(() => []),
-      ]);
+      const [tree, trash, quotaData, rootFiles, myShares, sharedWithMe] =
+        await Promise.all([
+          api.listFolderTree(),
+          api.listTrash(),
+          api.getStorageQuota(),
+          api.listFolderFiles(null),
+          api.listMyShares().catch(() => []),
+          api.listSharedWithMe().catch(() => []),
+        ]);
 
       const sharedIds = new Set(myShares.map((s) => s.resource_id));
+      const myId = user.id;
 
       const flatFolders = flattenTree(tree);
       const folderMeta = new Map<string, ApiFolder>();
@@ -297,18 +341,72 @@ export function DriveProvider({ children }: { children: ReactNode }) {
             is_trashed: false,
             created_at: "",
             updated_at: "",
+            owner_id: myId,
+            access_role: "owner",
           },
           stars,
           sharedIds,
+          { accessRole: "owner", ownerId: myId },
         );
       });
 
       const fileEntries: FileEntry[] = rootFiles.map((f) =>
-        mapFile(f, stars, sharedIds),
+        mapFile(f, stars, sharedIds, {
+          accessRole: asAccessRole(f.access_role) ?? "owner",
+          ownerId: f.owner_id ?? myId,
+        }),
       );
       for (const folder of flatFolders) {
         const files = await api.listFolderFiles(folder.id);
-        fileEntries.push(...files.map((f) => mapFile(f, stars, sharedIds)));
+        fileEntries.push(
+          ...files.map((f) =>
+            mapFile(f, stars, sharedIds, {
+              accessRole: asAccessRole(f.access_role) ?? "owner",
+              ownerId: f.owner_id ?? myId,
+            }),
+          ),
+        );
+      }
+
+      const sharedEntries: FileEntry[] = [];
+      for (const item of sharedWithMe) {
+        if (item.is_trashed) continue;
+        const role = asAccessRole(item.role) ?? "viewer";
+        if (item.resource_type === "folder") {
+          sharedEntries.push({
+            id: item.resource_id,
+            folderName: item.resource_name,
+            isFolder: true,
+            fileLink: "",
+            fileName: "",
+            isStarred: stars.has(item.resource_id),
+            isTrashed: false,
+            fileExtension: "",
+            folderId: "",
+            updatedAt: item.updated_at ?? undefined,
+            isShared: true,
+            isSharedWithMe: true,
+            accessRole: role,
+          });
+        } else {
+          sharedEntries.push({
+            id: item.resource_id,
+            folderName: "",
+            isFolder: false,
+            fileLink: "",
+            fileName: item.resource_name,
+            isStarred: stars.has(item.resource_id),
+            isTrashed: false,
+            fileExtension: extensionOf(item.resource_name),
+            folderId: "",
+            fileSize: item.size_bytes ?? undefined,
+            mimeType: item.mime_type,
+            updatedAt: item.updated_at ?? undefined,
+            isShared: true,
+            isSharedWithMe: true,
+            accessRole: role,
+          });
+        }
       }
 
       const trashEntries: FileEntry[] = trash.items.map((item) => {
@@ -326,11 +424,19 @@ export function DriveProvider({ children }: { children: ReactNode }) {
           fileSize: item.size_bytes ?? undefined,
           updatedAt: item.trashed_at ?? undefined,
           isShared: sharedIds.has(item.resource_id),
+          accessRole: "owner" as const,
+          ownerId: myId,
         };
       });
 
       const byId = new Map<string, FileEntry>();
       for (const e of [...folderEntries, ...fileEntries]) {
+        byId.set(e.id, e);
+      }
+      // Shared-with-me overlays (keep role if already owned — shouldn't happen)
+      for (const e of sharedEntries) {
+        const existing = byId.get(e.id);
+        if (existing && existing.accessRole === "owner") continue;
         byId.set(e.id, e);
       }
       for (const e of trashEntries) {
@@ -357,19 +463,67 @@ export function DriveProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  const ensureFolderLoaded = useCallback(
+    async (folderId: string) => {
+      if (!folderId || !user) return;
+      const stars = loadStarred();
+      try {
+        const [contents, files, myShares] = await Promise.all([
+          api.listFolderContents(folderId),
+          api.listFolderFiles(folderId),
+          api.listMyShares().catch(() => []),
+        ]);
+        const sharedIds = new Set(myShares.map((s) => s.resource_id));
+        const mediaEntries = files.map((f) => mapFile(f, stars, sharedIds));
+
+        setEntries((prev) => {
+          const parent = prev.find((e) => e.id === folderId);
+          const inherit = parent?.accessRole;
+          const fromShare = Boolean(parent?.isSharedWithMe);
+          const byId = new Map(prev.map((e) => [e.id, e]));
+          for (const f of contents.folders) {
+            byId.set(
+              f.id,
+              mapFolder(f, stars, sharedIds, {
+                accessRole: asAccessRole(f.access_role) ?? inherit,
+                isSharedWithMe: fromShare,
+              }),
+            );
+          }
+          for (const f of files) {
+            byId.set(
+              f.id,
+              mapFile(f, stars, sharedIds, {
+                accessRole: asAccessRole(f.access_role) ?? inherit,
+                isSharedWithMe: fromShare,
+              }),
+            );
+          }
+          return [...byId.values()];
+        });
+
+        void hydrateThumbnails(mediaEntries);
+      } catch (err) {
+        console.error("Failed to load shared folder contents", err);
+      }
+    },
+    [user, hydrateThumbnails],
+  );
+
   const addFolder = useCallback(
     async (name: string, parentId: string) => {
       const folderName = name.trim() || "Untitled folder";
       try {
         const created = await api.createFolder(folderName, parentId || null);
         await refresh();
+        if (parentId) await ensureFolderLoaded(parentId);
         return created.id;
       } catch (err) {
         window.alert(err instanceof Error ? err.message : "Could not create folder");
         return null;
       }
     },
-    [refresh],
+    [refresh, ensureFolderLoaded],
   );
 
   const addFiles = useCallback(
@@ -378,7 +532,12 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       for (const file of files) {
         try {
           const uploaded = await api.uploadFile(file, parentId || null);
-          created.push(mapFile(uploaded, loadStarred(), new Set()));
+          created.push(
+            mapFile(uploaded, loadStarred(), new Set(), {
+              accessRole: asAccessRole(uploaded.access_role) ?? "editor",
+              folderId: uploaded.folder_id ?? parentId,
+            }),
+          );
         } catch (err) {
           window.alert(
             err instanceof Error ? err.message : `Upload failed for ${file.name}`,
@@ -386,9 +545,12 @@ export function DriveProvider({ children }: { children: ReactNode }) {
         }
       }
       await refresh();
+      // refresh() only reloads owned + shared roots; reload this folder so
+      // editor uploads into a shared folder appear without a full page refresh.
+      if (parentId) await ensureFolderLoaded(parentId);
       return created;
     },
-    [refresh],
+    [refresh, ensureFolderLoaded],
   );
 
   const renameEntry = useCallback(
@@ -475,19 +637,36 @@ export function DriveProvider({ children }: { children: ReactNode }) {
 
   const getBreadcrumbs = useCallback(
     (folderId: string) => {
-      const trail: { id: string; label: string }[] = [
-        { id: "", label: "My Drive" },
-      ];
-      if (!folderId) return trail;
+      if (!folderId) return [{ id: "", label: "My Drive" }];
       const byId = new Map(entries.filter((e) => e.isFolder).map((e) => [e.id, e]));
       const labels: { id: string; label: string }[] = [];
       let pointer = byId.get(folderId);
+      let sharedRoot = Boolean(pointer?.isSharedWithMe);
       while (pointer) {
         labels.unshift({ id: pointer.id, label: pointer.folderName });
+        if (pointer.isSharedWithMe) sharedRoot = true;
         if (!pointer.folderId) break;
-        pointer = byId.get(pointer.folderId);
+        const parent = byId.get(pointer.folderId);
+        if (!parent) break;
+        pointer = parent;
       }
-      return [...trail, ...labels];
+      return [
+        sharedRoot
+          ? { id: "shared", label: "Shared with me" }
+          : { id: "", label: "My Drive" },
+        ...labels,
+      ];
+    },
+    [entries],
+  );
+
+  const canEditFolder = useCallback(
+    (folderId: string) => {
+      if (!folderId) return true; // own My Drive root
+      const folder = entries.find((e) => e.id === folderId && e.isFolder);
+      if (!folder) return false;
+      const role = folder.accessRole ?? "owner";
+      return role === "owner" || role === "editor";
     },
     [entries],
   );
@@ -603,14 +782,18 @@ export function DriveProvider({ children }: { children: ReactNode }) {
           prev.map((u) => (u.id === uploadId ? { ...u, progress: 40 } : u)),
         );
         const [created] = await addFiles([file], parentId);
+        if (!created) {
+          setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+          return;
+        }
         setUploads((prev) =>
           prev.map((u) =>
             u.id === uploadId
               ? {
                   ...u,
                   progress: 100,
-                  fileId: created?.id,
-                  fileLink: created?.fileLink || "ready",
+                  fileId: created.id,
+                  fileLink: created.fileLink || "ready",
                 }
               : u,
           ),
@@ -738,6 +921,8 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       deleteEntry,
       getByFolder,
       getBreadcrumbs,
+      ensureFolderLoaded,
+      canEditFolder,
       openOrDownloadFile,
       downloadFolder,
       uploadDropped,
@@ -766,6 +951,8 @@ export function DriveProvider({ children }: { children: ReactNode }) {
       deleteEntry,
       getByFolder,
       getBreadcrumbs,
+      ensureFolderLoaded,
+      canEditFolder,
       openOrDownloadFile,
       downloadFolder,
       uploadDropped,

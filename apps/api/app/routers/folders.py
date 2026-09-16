@@ -78,8 +78,7 @@ def get_folder(
     current_user: User = Depends(get_current_user),
     folders: FolderService = Depends(get_folder_service),
 ) -> FolderResponse:
-    folder = folders.get_folder(current_user, folder_id)
-    return FolderResponse.model_validate(folder)
+    return folders.get_folder_response(current_user, folder_id)
 
 
 @router.patch(

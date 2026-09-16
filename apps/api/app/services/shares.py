@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core import errors
 from app.models import File, Folder, Share, ShareRole, User
-from app.schemas.shares import SharedLinkAccessResponse, ShareResponse
+from app.schemas.shares import SharedLinkAccessResponse, ShareResponse, SharedWithMeItem
 from app.services import file_queries, folder_queries, permissions
 from app.services.users import get_user_by_email
 
@@ -32,6 +32,18 @@ class ShareService:
             raise errors.not_found("Grantee user not found")
         if grantee.id == owner.id:
             raise errors.bad_request("Cannot share with yourself")
+
+        existing = permissions.get_share_for_user(
+            self.db,
+            user_id=grantee.id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+        )
+        if existing is not None:
+            existing.role = ShareRole(role)
+            self.db.commit()
+            self.db.refresh(existing)
+            return existing
 
         share = Share(
             owner_id=owner.id,
@@ -72,9 +84,48 @@ class ShareService:
         shares = permissions.list_shares_for_owner(self.db, owner.id)
         return [ShareResponse.model_validate(s) for s in shares]
 
-    def list_shared_with_me(self, user: User) -> list[ShareResponse]:
+    def list_shared_with_me(self, user: User) -> list[SharedWithMeItem]:
         shares = permissions.list_shares_with_me(self.db, user.id)
-        return [ShareResponse.model_validate(s) for s in shares]
+        items: list[SharedWithMeItem] = []
+        for share in shares:
+            role = share.role.value if hasattr(share.role, "value") else str(share.role)
+            if share.resource_type == "file":
+                file_row = file_queries.get_file_by_id(
+                    self.db, share.resource_id, include_trashed=True
+                )
+                if file_row is None:
+                    continue
+                items.append(
+                    SharedWithMeItem(
+                        share_id=share.id,
+                        resource_type="file",
+                        resource_id=file_row.id,
+                        role=role,
+                        resource_name=file_row.name,
+                        mime_type=file_row.mime_type,
+                        size_bytes=file_row.size_bytes,
+                        folder_id=file_row.folder_id,
+                        updated_at=file_row.updated_at,
+                        is_trashed=file_row.is_trashed,
+                    )
+                )
+            else:
+                folder = self.db.scalar(select(Folder).where(Folder.id == share.resource_id))
+                if folder is None:
+                    continue
+                items.append(
+                    SharedWithMeItem(
+                        share_id=share.id,
+                        resource_type="folder",
+                        resource_id=folder.id,
+                        role=role,
+                        resource_name=folder.name,
+                        parent_id=folder.parent_id,
+                        updated_at=folder.updated_at,
+                        is_trashed=folder.is_trashed,
+                    )
+                )
+        return items
 
     def revoke_share(self, owner: User, share_id: UUID) -> None:
         share = self.db.scalar(

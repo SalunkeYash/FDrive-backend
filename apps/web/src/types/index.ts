@@ -16,6 +16,11 @@ export type FileEntry = {
   mimeType?: string | null;
   updatedAt?: string;
   isShared?: boolean;
+  /** True when this item was shared with the signed-in user */
+  isSharedWithMe?: boolean;
+  /** owner | viewer | editor — from API when known */
+  accessRole?: "owner" | "viewer" | "editor";
+  ownerId?: string;
 };
 
 export type UploadItem = {

@@ -8,6 +8,15 @@ from app.core import errors
 from app.models import Folder, User
 from app.schemas.folders import FolderContentsResponse, FolderResponse, FolderTreeNode
 from app.services import folder_queries as fq
+from app.services import permissions
+from app.services.users import get_user_by_id
+
+
+def _folder_response(db: Session, user: User, folder: Folder) -> FolderResponse:
+    data = FolderResponse.model_validate(folder)
+    return data.model_copy(
+        update={"access_role": permissions.role_for_folder(db, user, folder)}
+    )
 
 
 class FolderService:
@@ -16,7 +25,7 @@ class FolderService:
 
     def create_folder(
         self,
-        owner: User,
+        user: User,
         *,
         name: str,
         parent_folder_id: UUID | None,
@@ -26,17 +35,29 @@ class FolderService:
         except ValueError as exc:
             raise errors.bad_request(str(exc)) from exc
 
-        parent = self._require_parent(owner.id, parent_folder_id)
+        drive_owner = user
+        parent: Folder | None = None
+        if parent_folder_id is not None:
+            parent = permissions.require_edit_folder(self.db, user, parent_folder_id)
+            if parent.owner_id != user.id:
+                owner = get_user_by_id(self.db, parent.owner_id)
+                if owner is None:
+                    raise errors.not_found("Folder owner not found")
+                drive_owner = owner
+        else:
+            # Creating at root is always in the caller's own drive.
+            pass
+
         if fq.sibling_name_exists(
             self.db,
-            owner_id=owner.id,
+            owner_id=drive_owner.id,
             parent_folder_id=parent_folder_id,
             name=name,
         ):
             raise errors.conflict("A folder with this name already exists here")
 
         folder = Folder(
-            owner_id=owner.id,
+            owner_id=drive_owner.id,
             parent_id=parent_folder_id,
             name=name,
             path=fq.build_child_path(parent),
@@ -46,37 +67,49 @@ class FolderService:
         self.db.refresh(folder)
         return folder
 
-    def get_folder(self, owner: User, folder_id: UUID) -> Folder:
-        return self._require_owned_folder(owner.id, folder_id)
+    def get_folder(self, user: User, folder_id: UUID) -> Folder:
+        return permissions.require_view_folder(self.db, user, folder_id)
+
+    def get_folder_response(self, user: User, folder_id: UUID) -> FolderResponse:
+        folder = self.get_folder(user, folder_id)
+        return _folder_response(self.db, user, folder)
 
     def list_folder_contents(
         self,
-        owner: User,
+        user: User,
         parent_folder_id: UUID | None,
     ) -> FolderContentsResponse:
         if parent_folder_id is not None:
-            self._require_owned_folder(owner.id, parent_folder_id)
+            parent = permissions.require_view_folder(self.db, user, parent_folder_id)
+            drive_owner_id = parent.owner_id
+        else:
+            drive_owner_id = user.id
 
         folders = fq.list_child_folders(
             self.db,
-            owner_id=owner.id,
+            owner_id=drive_owner_id,
             parent_folder_id=parent_folder_id,
         )
+        if parent_folder_id is None:
+            visible = folders
+        else:
+            visible = [f for f in folders if permissions.can_view_folder(self.db, user, f)]
+
         return FolderContentsResponse(
             parent_folder_id=parent_folder_id,
-            folders=[FolderResponse.model_validate(f) for f in folders],
+            folders=[_folder_response(self.db, user, f) for f in visible],
         )
 
-    def rename_folder(self, owner: User, folder_id: UUID, name: str) -> Folder:
+    def rename_folder(self, user: User, folder_id: UUID, name: str) -> Folder:
         try:
             name = fq.normalize_folder_name(name)
         except ValueError as exc:
             raise errors.bad_request(str(exc)) from exc
 
-        folder = self._require_owned_folder(owner.id, folder_id)
+        folder = permissions.require_edit_folder(self.db, user, folder_id)
         if fq.sibling_name_exists(
             self.db,
-            owner_id=owner.id,
+            owner_id=folder.owner_id,
             parent_folder_id=folder.parent_id,
             name=name,
             exclude_folder_id=folder.id,
@@ -90,12 +123,22 @@ class FolderService:
 
     def move_folder(
         self,
-        owner: User,
+        user: User,
         folder_id: UUID,
         destination_parent_folder_id: UUID | None,
     ) -> Folder:
-        folder = self._require_owned_folder(owner.id, folder_id)
-        destination = self._require_parent(owner.id, destination_parent_folder_id)
+        folder = permissions.require_edit_folder(self.db, user, folder_id)
+
+        if destination_parent_folder_id is None:
+            if user.id != folder.owner_id:
+                raise errors.forbidden("Editors cannot move folders to another user's root")
+            destination = None
+        else:
+            destination = permissions.require_edit_folder(
+                self.db, user, destination_parent_folder_id
+            )
+            if destination.owner_id != folder.owner_id:
+                raise errors.bad_request("Destination must stay in the same drive")
 
         if destination is not None and (
             destination.id == folder.id or fq.is_descendant(folder, destination)
@@ -104,7 +147,7 @@ class FolderService:
 
         if fq.sibling_name_exists(
             self.db,
-            owner_id=owner.id,
+            owner_id=folder.owner_id,
             parent_folder_id=destination_parent_folder_id,
             name=folder.name,
             exclude_folder_id=folder.id,
@@ -118,10 +161,9 @@ class FolderService:
         folder.parent_id = destination_parent_folder_id
         folder.path = new_path
 
-        # Rewrite materialized paths for all descendants
         descendants = [
             child
-            for child in fq.list_owned_folders(self.db, owner.id)
+            for child in fq.list_owned_folders(self.db, folder.owner_id)
             if child.path.startswith(old_prefix)
         ]
         for child in descendants:
@@ -156,14 +198,3 @@ class FolderService:
             else:
                 nodes[folder.parent_id].children.append(node)
         return roots
-
-    def _require_owned_folder(self, owner_id: UUID, folder_id: UUID) -> Folder:
-        folder = fq.get_owned_folder(self.db, owner_id=owner_id, folder_id=folder_id)
-        if folder is None:
-            raise errors.not_found("Folder not found")
-        return folder
-
-    def _require_parent(self, owner_id: UUID, parent_folder_id: UUID | None) -> Folder | None:
-        if parent_folder_id is None:
-            return None
-        return self._require_owned_folder(owner_id, parent_folder_id)

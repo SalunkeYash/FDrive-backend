@@ -59,12 +59,14 @@ class FolderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    owner_id: UUID
     name: str
     parent_id: UUID | None
     path: str
     is_trashed: bool
     created_at: datetime
     updated_at: datetime
+    access_role: str | None = None
 
 
 class FolderContentsResponse(BaseModel):

@@ -19,6 +19,22 @@ def normalize_file_name(name: str) -> str:
     return cleaned
 
 
+def get_file_by_id(
+    db: Session,
+    file_id: UUID,
+    *,
+    include_trashed: bool = False,
+) -> File | None:
+    query = (
+        select(File)
+        .where(File.id == file_id)
+        .options(joinedload(File.object))
+    )
+    if not include_trashed:
+        query = query.where(File.is_trashed.is_(False))
+    return db.scalar(query)
+
+
 def get_owned_file(
     db: Session,
     *,
@@ -26,14 +42,10 @@ def get_owned_file(
     file_id: UUID,
     include_trashed: bool = False,
 ) -> File | None:
-    query = (
-        select(File)
-        .where(File.id == file_id, File.owner_id == owner_id)
-        .options(joinedload(File.object))
-    )
-    if not include_trashed:
-        query = query.where(File.is_trashed.is_(False))
-    return db.scalar(query)
+    file_row = get_file_by_id(db, file_id, include_trashed=include_trashed)
+    if file_row is None or file_row.owner_id != owner_id:
+        return None
+    return file_row
 
 
 def list_files_in_folder(

@@ -24,6 +24,7 @@ class FileResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    owner_id: UUID
     name: str
     mime_type: str | None
     size_bytes: int
@@ -32,6 +33,8 @@ class FileResponse(BaseModel):
     is_trashed: bool
     created_at: datetime
     updated_at: datetime
+    # Populated by API when useful for the current user (owner | viewer | editor)
+    access_role: str | None = None
 
 
 class RequestDownloadUrlResponse(BaseModel):

@@ -159,9 +159,12 @@ function FileHeader({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {breadcrumbTrail.map((item, index) => {
               const isLast = index === breadcrumbTrail.length - 1;
-              const route = item.id
-                ? `/drive/folders/${item.id}`
-                : "/drive/my-drive";
+              const route =
+                item.id === "shared"
+                  ? "/drive/shared"
+                  : item.id
+                    ? `/drive/folders/${item.id}`
+                    : "/drive/my-drive";
 
               return (
                 <React.Fragment key={`${item.id}-${item.label}`}>

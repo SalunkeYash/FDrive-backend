@@ -81,8 +81,7 @@ def get_file(
     current_user: User = Depends(get_current_user),
     files: FileService = Depends(get_file_service),
 ) -> FileResponse:
-    file_row = files.get_file(current_user, file_id)
-    return FileResponse.model_validate(file_row)
+    return files.get_file_response(current_user, file_id)
 
 
 @router.get(
