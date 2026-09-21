@@ -33,6 +33,12 @@ class ShareRole(enum.StrEnum):
     editor = "editor"
 
 
+class AccessRequestStatus(enum.StrEnum):
+    pending = "pending"
+    approved = "approved"
+    denied = "denied"
+
+
 class UploadSessionStatus(enum.StrEnum):
     initiated = "initiated"
     uploading = "uploading"
@@ -211,6 +217,47 @@ class Share(Base, TimestampMixin):
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     owner: Mapped[User] = relationship(back_populates="shares_owned", foreign_keys=[owner_id])
+
+
+class AccessRequest(Base, TimestampMixin):
+    """Pending request for access to a restricted file/folder."""
+
+    __tablename__ = "access_requests"
+    __table_args__ = (
+        Index("ix_access_requests_resource", "resource_type", "resource_id"),
+        Index("ix_access_requests_owner_status", "owner_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    requester_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    resource_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    requested_role: Mapped[ShareRole] = mapped_column(
+        Enum(ShareRole, name="share_role", native_enum=True, create_constraint=False),
+        nullable=False,
+        server_default="viewer",
+    )
+    message: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    status: Mapped[AccessRequestStatus] = mapped_column(
+        Enum(
+            AccessRequestStatus,
+            name="access_request_status",
+            native_enum=True,
+        ),
+        nullable=False,
+        server_default="pending",
+    )
 
 
 class TrashEntry(Base, TimestampMixin):

@@ -1,16 +1,18 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 
 export default function LoginPage() {
   const { user, loading, login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get("next") || "/drive/my-drive";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!loading && user) return <Navigate to="/drive/my-drive" replace />;
+  if (!loading && user) return <Navigate to={next} replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -60,14 +62,14 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-full bg-[#1a73e8] py-2.5 font-medium text-white hover:bg-[#1765cc] disabled:opacity-60"
+          className="w-full rounded-full bg-[#1a73e8] py-2.5 text-sm font-medium text-white hover:bg-[#1558b0] disabled:opacity-60"
         >
           {busy ? "Signing in…" : "Sign in"}
         </button>
         <p className="text-center text-sm text-textC">
-          New here?{" "}
+          No account?{" "}
           <Link to="/register" className="text-[#1a73e8]">
-            Create an account
+            Create one
           </Link>
         </p>
       </form>

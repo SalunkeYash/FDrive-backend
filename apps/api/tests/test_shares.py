@@ -86,6 +86,104 @@ def test_create_link_share_and_access(client: TestClient) -> None:
     assert accessed.json()["resource_id"] == file_id
     assert accessed.json()["resource_name"] == "shared.txt"
 
+    contents = client.get(f"/api/v1/shares/link/{token}/contents")
+    assert contents.status_code == 200, contents.text
+    body = contents.json()
+    assert body["resource_type"] == "file"
+    assert len(body["files"]) == 1
+    assert body["files"][0]["id"] == file_id
+
+    download = client.get(
+        f"/api/v1/shares/link/{token}/files/{file_id}/download-url"
+    )
+    assert download.status_code == 200, download.text
+    assert "download_url" in download.json()
+
+
+def test_set_link_access_restricted_and_anyone(client: TestClient) -> None:
+    owner = _register(client, f"gen-{uuid.uuid4().hex[:8]}@example.com")
+    file_id = _ready_file(client, owner)
+
+    anyone = client.post(
+        "/api/v1/shares/set-link-access",
+        headers=owner,
+        json={
+            "resource_type": "file",
+            "resource_id": file_id,
+            "access": "anyone",
+            "role": "viewer",
+        },
+    )
+    assert anyone.status_code == 200, anyone.text
+    assert anyone.json()["link"]["enabled"] is True
+    token = anyone.json()["link"]["token"]
+    assert token
+
+    access = client.get(
+        "/api/v1/shares/list-resource-access",
+        headers=owner,
+        params={"resource_type": "file", "resource_id": file_id},
+    )
+    assert access.status_code == 200
+    assert access.json()["link"]["enabled"] is True
+    assert access.json()["owner"]["role"] == "owner"
+
+    restricted = client.post(
+        "/api/v1/shares/set-link-access",
+        headers=owner,
+        json={
+            "resource_type": "file",
+            "resource_id": file_id,
+            "access": "restricted",
+            "role": "viewer",
+        },
+    )
+    assert restricted.status_code == 200, restricted.text
+    assert restricted.json()["link"]["enabled"] is False
+
+    assert (
+        client.get(f"/api/v1/shares/access-shared-link/{token}").status_code
+        == 404
+    )
+
+
+def test_link_share_folder_contents(client: TestClient) -> None:
+    owner = _register(client, f"foldlink-{uuid.uuid4().hex[:8]}@example.com")
+    folder = client.post(
+        "/api/v1/folders/create-folder",
+        headers=owner,
+        json={"name": "Public Pics"},
+    )
+    assert folder.status_code == 201, folder.text
+    folder_id = folder.json()["id"]
+
+    file_id = _ready_file(client, owner)
+    assert (
+        client.post(
+            f"/api/v1/files/{file_id}/move-file",
+            headers=owner,
+            json={"destination_folder_id": folder_id},
+        ).status_code
+        == 200
+    )
+
+    link = client.post(
+        "/api/v1/shares/set-link-access",
+        headers=owner,
+        json={
+            "resource_type": "folder",
+            "resource_id": folder_id,
+            "access": "anyone",
+            "role": "viewer",
+        },
+    )
+    assert link.status_code == 200, link.text
+    token = link.json()["link"]["token"]
+
+    contents = client.get(f"/api/v1/shares/link/{token}/contents")
+    assert contents.status_code == 200, contents.text
+    assert any(f["id"] == file_id for f in contents.json()["files"])
+
 
 def test_grantee_viewer_and_editor_access(client: TestClient) -> None:
     owner = _register(client, f"owner-{uuid.uuid4().hex[:8]}@example.com")

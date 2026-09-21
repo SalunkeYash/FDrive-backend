@@ -37,3 +37,20 @@ def get_current_user(
         raise errors.unauthorized("User inactive or not found")
 
     return user
+
+
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id = UUID(payload["sub"])
+    except (InvalidTokenError, KeyError, ValueError):
+        return None
+    user = get_user_by_id(db, user_id)
+    if user is None or not user.is_active:
+        return None
+    return user

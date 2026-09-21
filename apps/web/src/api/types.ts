@@ -73,6 +73,28 @@ export type ShareResponse = {
   created_at: string;
 };
 
+export type ResourceAccessPerson = {
+  share_id: string | null;
+  email: string;
+  display_name: string | null;
+  role: string;
+};
+
+export type ResourceLinkAccess = {
+  enabled: boolean;
+  share_id: string | null;
+  token: string | null;
+  role: string | null;
+};
+
+export type ResourceAccess = {
+  resource_type: string;
+  resource_id: string;
+  owner: ResourceAccessPerson;
+  people: ResourceAccessPerson[];
+  link: ResourceLinkAccess;
+};
+
 export type SharedWithMeItem = {
   share_id: string;
   resource_type: string;
@@ -93,4 +115,39 @@ export type SharedLinkAccess = {
   resource_id: string;
   role: string;
   resource_name: string;
+};
+
+export type SharedLinkContents = {
+  share_id: string;
+  resource_type: string;
+  resource_id: string;
+  role: string;
+  resource_name: string;
+  current_folder_id: string | null;
+  parent_folder_id: string | null;
+  folders: ApiFolder[];
+  files: ApiFile[];
+};
+
+export type ResolveSharedItem = {
+  status: "public" | "allowed" | "denied" | "not_found" | string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string | null;
+  role: string | null;
+  link_token: string | null;
+  owner_email: string | null;
+};
+
+export type AccessRequestItem = {
+  id: string;
+  resource_type: string;
+  resource_id: string;
+  requested_role: string;
+  message: string | null;
+  status: string;
+  requester_email: string | null;
+  requester_display_name: string | null;
+  resource_name: string | null;
+  created_at: string;
 };

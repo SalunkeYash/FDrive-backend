@@ -45,6 +45,43 @@ def get_share_by_token(db: Session, token: str) -> Share | None:
     return None
 
 
+def get_link_share_for_resource(
+    db: Session, *, resource_type: str, resource_id: UUID
+) -> Share | None:
+    """Public link share: grantee is null and a token is set."""
+    share = db.scalar(
+        select(Share).where(
+            Share.resource_type == resource_type,
+            Share.resource_id == resource_id,
+            Share.grantee_user_id.is_(None),
+            Share.token.is_not(None),
+        )
+    )
+    if share is not None and _share_active(share):
+        return share
+    return None
+
+
+def folder_is_within_shared_folder(folder: Folder, shared_root_id: UUID) -> bool:
+    if folder.id == shared_root_id:
+        return True
+    return str(shared_root_id) in [
+        part for part in folder.path.strip("/").split("/") if part
+    ]
+
+
+def file_is_within_link_share(db: Session, file_row: File, share: Share) -> bool:
+    if share.resource_type == "file":
+        return file_row.id == share.resource_id
+    if file_row.folder_id is None:
+        return False
+    folder = fq.get_folder_by_id(db, file_row.folder_id)
+    if folder is None or folder.is_trashed:
+        return False
+    return folder_is_within_shared_folder(folder, share.resource_id)
+
+
+
 def _folder_and_ancestor_ids(folder: Folder) -> list[UUID]:
     """Closest-first: folder itself, then parents from path."""
     ids: list[UUID] = [folder.id]
@@ -174,6 +211,24 @@ def list_shares_for_owner(db: Session, owner_id: UUID) -> list[Share]:
             .order_by(Share.created_at.desc())
         ).all()
     )
+
+
+def list_user_shares_for_resource(
+    db: Session, *, owner_id: UUID, resource_type: str, resource_id: UUID
+) -> list[Share]:
+    shares = list(
+        db.scalars(
+            select(Share)
+            .where(
+                Share.owner_id == owner_id,
+                Share.resource_type == resource_type,
+                Share.resource_id == resource_id,
+                Share.grantee_user_id.is_not(None),
+            )
+            .order_by(Share.created_at.asc())
+        ).all()
+    )
+    return [s for s in shares if _share_active(s)]
 
 
 def list_shares_with_me(db: Session, user_id: UUID) -> list[Share]:

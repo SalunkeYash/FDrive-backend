@@ -9,6 +9,7 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import SharedWithMe from "@/pages/SharedWithMe";
 import SharedLinkPage from "@/pages/SharedLinkPage";
+import OpenSharedItemPage from "@/pages/OpenSharedItemPage";
 import { DriveProvider } from "@/context/DriveContext";
 import { useAuth } from "@/auth/AuthContext";
 
@@ -49,6 +50,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/share/:token" element={<SharedLinkPage />} />
+      <Route path="/open/:resourceType/:resourceId" element={<OpenSharedItemPage />} />
       <Route element={<AppLayout />}>
         <Route index element={<Navigate to="/drive/my-drive" replace />} />
         <Route path="drive" element={<Navigate to="/drive/my-drive" replace />} />

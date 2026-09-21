@@ -1,8 +1,12 @@
 import type {
+  AccessRequestItem,
   ApiFile,
   ApiFolder,
   FolderTreeNode,
+  ResolveSharedItem,
+  ResourceAccess,
   SharedLinkAccess,
+  SharedLinkContents,
   SharedWithMeItem,
   ShareResponse,
   StorageQuota,
@@ -216,6 +220,33 @@ export const api = {
     });
   },
 
+  setLinkAccess(input: {
+    resourceType: "file" | "folder";
+    resourceId: string;
+    access: "restricted" | "anyone";
+    role?: "viewer" | "editor";
+  }) {
+    return apiFetch<ResourceAccess>("/api/v1/shares/set-link-access", {
+      method: "POST",
+      body: JSON.stringify({
+        resource_type: input.resourceType,
+        resource_id: input.resourceId,
+        access: input.access,
+        role: input.role || "viewer",
+      }),
+    });
+  },
+
+  listResourceAccess(resourceType: "file" | "folder", resourceId: string) {
+    const params = new URLSearchParams({
+      resource_type: resourceType,
+      resource_id: resourceId,
+    });
+    return apiFetch<ResourceAccess>(
+      `/api/v1/shares/list-resource-access?${params}`,
+    );
+  },
+
   listMyShares() {
     return apiFetch<ShareResponse[]>("/api/v1/shares/list-my-shares");
   },
@@ -224,9 +255,123 @@ export const api = {
     return apiFetch<SharedWithMeItem[]>("/api/v1/shares/list-shared-with-me");
   },
 
+  revokeShare(shareId: string) {
+    return apiFetch<void>(`/api/v1/shares/${shareId}/revoke-share`, {
+      method: "POST",
+    });
+  },
+
   accessSharedLink(token: string) {
     return apiFetch<SharedLinkAccess>(
       `/api/v1/shares/access-shared-link/${encodeURIComponent(token)}`,
+      {},
+      false,
+    );
+  },
+
+  resolveSharedItem(resourceType: "file" | "folder", resourceId: string) {
+    const params = new URLSearchParams({
+      resource_type: resourceType,
+      resource_id: resourceId,
+    });
+    // Send auth if present so allowed users open directly.
+    return apiFetch<ResolveSharedItem>(
+      `/api/v1/shares/resolve-shared-item?${params}`,
+      {},
+      Boolean(getAccessToken()),
+    );
+  },
+
+  requestAccess(input: {
+    resourceType: "file" | "folder";
+    resourceId: string;
+    role?: "viewer" | "editor";
+    message?: string;
+  }) {
+    return apiFetch<AccessRequestItem>("/api/v1/shares/request-access", {
+      method: "POST",
+      body: JSON.stringify({
+        resource_type: input.resourceType,
+        resource_id: input.resourceId,
+        role: input.role || "viewer",
+        message: input.message || null,
+      }),
+    });
+  },
+
+  listAccessRequests(resourceType: "file" | "folder", resourceId: string) {
+    const params = new URLSearchParams({
+      resource_type: resourceType,
+      resource_id: resourceId,
+    });
+    return apiFetch<AccessRequestItem[]>(
+      `/api/v1/shares/list-access-requests?${params}`,
+    );
+  },
+
+  approveAccessRequest(requestId: string) {
+    return apiFetch<ShareResponse>(
+      `/api/v1/shares/access-requests/${requestId}/approve`,
+      { method: "POST" },
+    );
+  },
+
+  denyAccessRequest(requestId: string) {
+    return apiFetch<void>(
+      `/api/v1/shares/access-requests/${requestId}/deny`,
+      { method: "POST" },
+    );
+  },
+
+  listSharedLinkContents(token: string, folderId?: string | null) {
+    const params = new URLSearchParams();
+    if (folderId) params.set("folder_id", folderId);
+    const qs = params.toString();
+    return apiFetch<SharedLinkContents>(
+      `/api/v1/shares/link/${encodeURIComponent(token)}/contents${qs ? `?${qs}` : ""}`,
+      {},
+      false,
+    );
+  },
+
+  sharedLinkDownloadUrl(token: string, fileId: string) {
+    return apiFetch<{
+      file_id: string;
+      file_name: string;
+      download_url: string;
+      expires_in_seconds: number;
+      size_bytes: number;
+      mime_type: string | null;
+    }>(
+      `/api/v1/shares/link/${encodeURIComponent(token)}/files/${fileId}/download-url`,
+      {},
+      false,
+    );
+  },
+
+  sharedLinkPreviewUrl(token: string, fileId: string) {
+    return apiFetch<{
+      file_id: string;
+      variant: string;
+      preview_url: string;
+      expires_in_seconds: number;
+      mime_type: string | null;
+    }>(
+      `/api/v1/shares/link/${encodeURIComponent(token)}/files/${fileId}/preview-url`,
+      {},
+      false,
+    );
+  },
+
+  sharedLinkThumbnailUrl(token: string, fileId: string) {
+    return apiFetch<{
+      file_id: string;
+      variant: string;
+      preview_url: string;
+      expires_in_seconds: number;
+      mime_type: string | null;
+    }>(
+      `/api/v1/shares/link/${encodeURIComponent(token)}/files/${fileId}/thumbnail-url`,
       {},
       false,
     );
