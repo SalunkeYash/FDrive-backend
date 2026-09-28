@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core import rate_limit
+from dependencies import rate_limit
 
 
 def test_security_headers_present(client: TestClient) -> None:
@@ -19,13 +19,13 @@ def test_auth_rate_limit_blocks_bursts(client: TestClient, monkeypatch: pytest.M
 
     for _ in range(2):
         response = client.post(
-            "/api/v1/auth/login",
+            "/auth/login",
             json={"email": "nobody@example.com", "password": "wrongpass"},
         )
         assert response.status_code in {401, 429}
 
     blocked = client.post(
-        "/api/v1/auth/login",
+        "/auth/login",
         json={"email": "nobody@example.com", "password": "wrongpass"},
     )
     assert blocked.status_code == 429

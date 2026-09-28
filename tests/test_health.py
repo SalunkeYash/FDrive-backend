@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from main import app
+from tests.conftest import envelope_data
 
 client = TestClient(app)
 
@@ -8,7 +9,7 @@ client = TestClient(app)
 def test_health() -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    body = response.json()
+    body = envelope_data(response)
     assert body["status"] == "ok"
     assert body["service"] == "fdrive-api"
 
@@ -18,11 +19,8 @@ def test_ready_shape() -> None:
     response = client.get("/ready")
     assert response.status_code in (200, 503)
     body = response.json()
-    assert "checks" in body
-    assert "database" in body["checks"]
-    assert body["status"] in ("ready", "not_ready")
-
-
-def test_api_v1_health() -> None:
-    response = client.get("/api/v1/health")
-    assert response.status_code == 200
+    assert body["ok"] is (response.status_code == 200)
+    data = body.get("data") or {}
+    assert "checks" in data
+    assert "database" in data["checks"]
+    assert data["status"] in ("ready", "not_ready")

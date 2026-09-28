@@ -1,1 +1,0 @@
-"""Reusable HTTP error helpers."""

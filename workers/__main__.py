@@ -2,7 +2,7 @@
 FDrive background worker (Phase 12+).
 
 Polls SQS for jobs such as thumbnail generation and trash purge.
-Run: PYTHONPATH=apps/api python -m workers
+Run: PYTHONPATH=. python -m workers
 """
 
 from __future__ import annotations
@@ -12,10 +12,10 @@ import logging
 import time
 from uuid import UUID
 
-from app.core.config import settings
-from app.db.session import SessionLocal
-from app.integrations.sqs import get_sqs_client
-from app.services.thumbnails import generate_thumbnail_for_file
+from dependencies.config import settings
+from dependencies.sql_session import SessionLocal
+from integrations.sqs import get_sqs_client
+from service.thumbnail_service import generate_thumbnail_for_file
 
 logger = logging.getLogger("fdrive.worker")
 

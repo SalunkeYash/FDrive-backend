@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from workers.__main__ import handle_job
 
-from app.integrations.sqs import enqueue_job
+from integrations.sqs import enqueue_job
 
 
 def test_enqueue_job_sends_message() -> None:
@@ -11,8 +11,8 @@ def test_enqueue_job_sends_message() -> None:
     mock_client.send_message.return_value = {"MessageId": "msg-1"}
 
     with (
-        patch("app.integrations.sqs.settings.sqs_queue_url", "http://localhost:9324/queue/fdrive-jobs"),
-        patch("app.integrations.sqs.get_sqs_client", return_value=mock_client),
+        patch("integrations.sqs.settings.sqs_queue_url", "http://localhost:9324/queue/fdrive-jobs"),
+        patch("integrations.sqs.get_sqs_client", return_value=mock_client),
     ):
         message_id = enqueue_job("generate_thumbnail", {"file_id": "abc"})
 
@@ -24,7 +24,7 @@ def test_enqueue_job_sends_message() -> None:
 
 
 def test_enqueue_job_skips_when_queue_unset() -> None:
-    with patch("app.integrations.sqs.settings.sqs_queue_url", None):
+    with patch("integrations.sqs.settings.sqs_queue_url", None):
         assert enqueue_job("generate_thumbnail", {}) is None
 
 

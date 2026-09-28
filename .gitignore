@@ -67,3 +67,4 @@ coverage.xml
 !.cursor/rules/
 !.cursor/rules/**
 agent-transcripts/
+apps/

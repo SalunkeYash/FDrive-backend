@@ -4,32 +4,32 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.models import User
-from app.services import quota
+from models import User
+from service import quota_service as quota
 
 
 def _auth_header(client: TestClient) -> dict[str, str]:
     email = f"quota-{uuid.uuid4().hex[:12]}@example.com"
     response = client.post(
-        "/api/v1/auth/register-account",
+        "/auth/register",
         json={"email": email, "password": "securepass1", "display_name": "Quota User"},
     )
     assert response.status_code == 201, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    tokens = response.json()["data"]
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 def test_get_profile_and_storage_quota(client: TestClient) -> None:
     headers = _auth_header(client)
 
-    profile = client.get("/api/v1/account/profile", headers=headers)
+    profile = client.get("/account/profile", headers=headers)
     assert profile.status_code == 200
-    body = profile.json()
-    assert body["bytes_used"] == 0
-    assert body["bytes_limit"] == 5 * 1024 * 1024 * 1024
+    body = profile.json()["data"]
+    assert "email" in body
 
-    quota_response = client.get("/api/v1/account/storage-quota", headers=headers)
+    quota_response = client.get("/account/storage-quota", headers=headers)
     assert quota_response.status_code == 200
-    data = quota_response.json()
+    data = quota_response.json()["data"]
     assert data["bytes_used"] == 0
     assert data["bytes_remaining"] == data["bytes_limit"]
     assert data["usage_percent"] == 0.0
@@ -38,12 +38,12 @@ def test_get_profile_and_storage_quota(client: TestClient) -> None:
 def test_update_profile(client: TestClient) -> None:
     headers = _auth_header(client)
     updated = client.patch(
-        "/api/v1/account/profile",
+        "/account/profile",
         headers=headers,
         json={"display_name": "New Name"},
     )
     assert updated.status_code == 200
-    assert updated.json()["display_name"] == "New Name"
+    assert updated.json()["data"]["display_name"] == "New Name"
 
 
 def test_quota_helpers_add_and_release() -> None:

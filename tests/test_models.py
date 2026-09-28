@@ -1,6 +1,6 @@
 """Model import smoke tests (no DB required)."""
 
-from app.models import File, FileObject, Folder, Share, TrashEntry, UploadSession, User
+from models import File, FileObject, Folder, Share, TrashEntry, UploadSession, User
 
 
 def test_model_tablenames() -> None:
