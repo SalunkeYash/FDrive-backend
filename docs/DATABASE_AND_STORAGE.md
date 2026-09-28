@@ -298,6 +298,6 @@ docker compose up -d
 
 ## Related code
 
-- Models: `apps/api/app/models/entities.py`
+- Models: `app/models/entities.py`
 - Architecture overview: `docs/ARCHITECTURE.md`
-- S3 key helpers: `apps/api/app/integrations/s3.py`
+- S3 key helpers: `app/integrations/s3.py`

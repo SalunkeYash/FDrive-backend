@@ -32,7 +32,7 @@ FDrive is a personal/cloud drive product: users upload files to object storage, 
 |-------|--------|-----------|
 | Frontend | **Vite + React + TypeScript + Tailwind** | Authenticated app shell; Vite is the fit. **Not Next.js** unless we later need SSR/SEO landing pages |
 | Backend | **Python + FastAPI** | Fast, typed, good async for I/O-bound APIs |
-| API style | **REST** under `/api/v1` | Simple clients; OpenAPI from FastAPI |
+| API style | **REST** under `` | Simple clients; OpenAPI from FastAPI |
 | Database | **PostgreSQL** | Relational metadata, constraints, transactions |
 | ORM | **SQLAlchemy 2.x** (+ Alembic migrations) | Explicit models, mature Postgres support |
 | Object storage | **AWS S3** | Durable blobs; lifecycle + versioning available |
@@ -60,7 +60,7 @@ FDrive is a personal/cloud drive product: users upload files to object storage, 
 │  Browser (Vite + React SPA)                                     │
 │  Auth UI · File browser · Upload · Share · Search · Preview     │
 └────────────────────────────┬────────────────────────────────────┘
-                             │ HTTPS (REST /api/v1)
+                             │ HTTPS (REST )
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Edge: DNS → TLS → ALB (+ WAF later)                            │
@@ -107,7 +107,7 @@ Monorepo keeps API + workers sharing domain models and DB access. Split deployab
 ## 5. Backend architecture (modular monolith)
 
 ```
-apps/api/
+
 ├── main.py                  # app factory, middleware, routers
 ├── core/                    # config, security, logging, deps
 ├── db/                      # engine, session, base
@@ -220,7 +220,7 @@ s3://fdrive-{env}/
 
 ## 10. API surface (initial modules)
 
-Versioned: `/api/v1/...`
+Versioned: `/...`
 
 | Module | Examples | Phase |
 |--------|----------|-------|
@@ -316,7 +316,7 @@ Answer these before or during the listed phases; architecture above stays valid 
 
 **Phase 01 — Project Foundation**
 
-1. Scaffold monorepo (`apps/web`, `apps/api`, `workers`).
+1. Scaffold monorepo (`../Fdrive-frontend`, ``, `workers`).
 2. `docker-compose` for Postgres + Redis + MinIO.
 3. Minimal FastAPI hello + Vite app shell.
 4. Shared env example files; no secrets committed.

@@ -4,7 +4,7 @@
 
 - Access logs via `RequestLoggingMiddleware` (`method`, `path`, `status`, `duration_ms`, `request_id`)
 - Response header `X-Request-ID` for client correlation
-- `GET /api/v1/metrics-snapshot` for process-local counters (expand later)
+- `GET /metrics-snapshot` for process-local counters (expand later)
 
 ## Production recommendations
 

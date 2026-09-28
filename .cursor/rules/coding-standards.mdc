@@ -6,12 +6,16 @@ alwaysApply: true
 # FDrive coding standards
 
 Write code that is easy to read and reuse. Prefer clarity over cleverness.
+Match the company backend layout and response style so teammates can navigate this repo easily.
 
 ## Structure
 
-- Keep **frontend** in `apps/web/` and **backend** in `apps/api/` — never mix.
-- Routers stay thin: validate input, call a service, return a response.
-- Put business logic in `services/`. Put shared helpers in `core/` (security, deps, errors).
+- This repo is **backend-only**. Frontend lives in `/home/yash/Repos/Fdrive-frontend`.
+- Feature packages own `routes/` + `schemas/` (e.g. `folders/routes`, `auth/schemas`).
+- Register routers in `routes/api.py`; app entry is `main.py`.
+- Business logic in `service/`; DB access helpers in `model_handler/`.
+- Shared deps in `dependencies/` (auth, config, sql_session, errors, response).
+- Cross-cutting HTTP helpers in `middleware/`.
 - Prefer small reusable functions over copy-paste. Extract when the same logic appears twice.
 
 ## Style
@@ -28,21 +32,17 @@ Name routes and handlers for **what the API does for the product**, not vague sh
 
 - Good: `/auth/login`, `/auth/refresh-token`, `/account/profile`, `/account/storage-quota`
 - Bad: `/auth/me`, `/users/me/usage`, `/do`, `/data`, `/action`
-- Group by purpose: `auth` (credentials/session), `account` (profile/quota), later `folders`, `files`, `shares`
+- Group by purpose: `auth`, `account`, `folders`, `files`, `shares`, …
 - Handler function names should match the purpose: `get_storage_quota`, not `get_usage`
-- Path segments use words a new developer can understand without reading the code
+- Responses use company envelope: `{ "ok": true/false, "message"?: ..., "data"?: ... }`
 
 ## Backend (Python / FastAPI)
 
 - Type hints on public functions.
-- Raise HTTP errors via shared helpers in `app/core/errors.py`.
+- Raise HTTP errors via shared helpers in `dependencies/errors.py`.
 - Reuse `get_db`, `get_current_user`, and service factories via `Depends`.
 - Do not put SQL or password/JWT details inside routers.
-
-## Frontend (React / TypeScript)
-
-- Small components; shared UI/helpers when reused.
-- Prefer straightforward props and hooks over complex state libraries unless needed.
+- Return `success(...)` / rely on middleware for error envelopes.
 
 ## Git
 

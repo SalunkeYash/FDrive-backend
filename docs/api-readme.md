@@ -1,6 +1,6 @@
-# FDrive API (`apps/api`)
+# FDrive API (``)
 
-Backend only — frontend is in `apps/web/`.
+Backend only — frontend is in `../Fdrive-frontend/`.
 
 ```bash
 python3 -m venv .venv
@@ -10,7 +10,7 @@ cp ../../.env.example .env
 
 # Requires Postgres (from repo root: docker compose up -d postgres)
 alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 ```
 
 ```bash
