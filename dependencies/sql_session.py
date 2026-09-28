@@ -21,7 +21,7 @@ metadata = MetaData(naming_convention=convention)
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
-    echo=settings.debug,
+    echo=False,
 )
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, class_=Session)
