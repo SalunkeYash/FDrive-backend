@@ -24,8 +24,8 @@ htmlcov/
 
 # Node / frontend
 node_modules/
-apps/web/dist/
-apps/web/.vite/
+dist/
+.vite/
 *.local
 .npm
 .pnpm-store/
